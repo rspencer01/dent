@@ -12,7 +12,7 @@ import threading
 from collections import namedtuple
 
 MeshOptions = namedtuple("MeshOptions", ('has_bumpmap'))
-MeshDatum = namedtuple("MeshDatum", ('data', 'indices', 'colormap', 'normalmap', 'options'))
+MeshDatum = namedtuple("MeshDatum", ('data', 'indices', 'colormap', 'normalmap', 'specularmap', 'options'))
 
 def getOptionNumber(meshOptions):
   ans = 0
@@ -31,9 +31,11 @@ def getTextureFile(material, textureType, directory=None):
   elif textureType == pyassimp.material.aiTextureType_SPECULAR:
     if os.path.exists(directory+'/{}.spec.png'.format(material.properties[('name', 0)])):
       return '{}.spec.png'.format(material.properties[('name', 0)])
+
 shader             = Shaders.getShader('general-noninstanced')
 shader['colormap'] = Texture.COLORMAP_NUM
 shader['normalmap'] = Texture.NORMALMAP_NUM
+shader['specularmap'] = Texture.SPECULARMAP_NUM
 
 class Object(object):
   def __init__(
@@ -159,9 +161,16 @@ class Object(object):
       normalTexture = None
       options = options._replace(has_bumpmap=False)
 
+    if getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory):
+      logging.info("Getting texture from {}".format(getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory)))
+      specTexture = Texture.Texture(Texture.SPECULARMAP, nonblocking=self.daemon)
+      specTexture.loadFromImage(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory))
+    else:
+      specTexture = Texture.getBlackTexture()
+
     # Add the textures and the mesh data
     self.textures.append(texture)
-    self.meshes.append(MeshDatum(data, indices, texture, normalTexture, options))
+    self.meshes.append(MeshDatum(data, indices, texture, normalTexture, specTexture, options))
 
     taskQueue.addToMainThreadQueue(self.uploadMesh, (data, indices, mesh))
 
@@ -189,6 +198,7 @@ class Object(object):
 
       # Load textures
       meshdatum.colormap.load()
+      meshdatum.specularmap.load()
       if meshdatum.options.has_bumpmap:
         meshdatum.normalmap.load()
       shader.draw(gl.GL_TRIANGLES, renderID)
