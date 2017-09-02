@@ -10,9 +10,10 @@ import logging
 import taskQueue
 import threading
 from collections import namedtuple
+import Animation
 
-MeshOptions = namedtuple("MeshOptions", ('has_bumpmap'))
-MeshDatum = namedtuple("MeshDatum", ('data', 'indices', 'colormap', 'normalmap', 'specularmap', 'options'))
+MeshOptions = namedtuple("MeshOptions", ('has_bumpmap', 'has_bones'))
+MeshDatum = namedtuple("MeshDatum", ('name', 'data', 'indices', 'colormap', 'normalmap', 'specularmap', 'options'))
 
 def getOptionNumber(meshOptions):
   ans = 0
@@ -20,6 +21,16 @@ def getOptionNumber(meshOptions):
     if v:
       ans += 2 ** i
   return ans
+
+def get_node_parent(scene, name):
+  def dfs(node,parent):
+    if node.name == name:
+      return parent
+    for i in node.children:
+      a = dfs(i, node)
+      if a: return a
+    return None
+  return dfs(scene.rootnode, '')
 
 def getTextureFile(material, textureType, directory=None):
   if textureType == pyassimp.material.aiTextureType_DIFFUSE:
@@ -45,10 +56,14 @@ class Object(object):
       scale=1,
       position=np.zeros(3),
       offset=np.zeros(3),
+      will_animate=False,
       daemon=True):
 
     if name == None:
       name = os.path.basename(filename)
+
+    if will_animate:
+      daemon = False
 
     self.filename = filename
     self.directory = os.path.dirname(filename)
@@ -58,8 +73,16 @@ class Object(object):
     self.renderIDs = []
     self.textures = []
     self.scale = scale
+    self.bones = {}
+    self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
+    self.animations = []
+    self.animation = None
+    self.will_animate = will_animate
     self.position = np.array(position, dtype=np.float32)
-    self.offset = np.array(offset, dtype=np.float32)
+    if self.will_animate:
+      self.offset = np.zeros(3)
+    else:
+      self.offset = np.array(offset, dtype=np.float32)
     self.direction = np.array((0,0,1), dtype=float)
     self.bidirection = np.array((1,0,0), dtype=float)
     self.daemon = daemon
@@ -85,31 +108,32 @@ class Object(object):
         processing=pyassimp.postprocess.aiProcess_CalcTangentSpace|
                    pyassimp.postprocess.aiProcess_Triangulate|
                    pyassimp.postprocess.aiProcess_JoinIdenticalVertices|
-                   pyassimp.postprocess.aiProcess_OptimizeGraph|
-                   pyassimp.postprocess.aiProcess_OptimizeMeshes|
+                   pyassimp.postprocess.aiProcess_LimitBoneWeights |
                    pyassimp.postprocess.aiProcess_GenNormals)
 
-    def addNode(node, trans):
+    def addNode(node, trans, depth = 0):
       newtrans = trans.dot(node.transformation)
       for msh in node.meshes:
-        self.addMesh(msh, newtrans)
+        self.addMesh(node.name, msh, newtrans)
       for nod in node.children:
-        addNode(nod, newtrans)
+        addNode(nod, newtrans, depth+1)
 
     t = np.eye(4)
     t[:3] *= self.scale
     addNode(self.scene.rootnode, t)
 
 
-  def addMesh(self, mesh, trans):
+  def addMesh(self, name, mesh, trans):
     logging.debug("Loading mesh {}".format(mesh.__repr__()))
-    options = MeshOptions(False)
+    options = MeshOptions(False, False)
     data = np.zeros(len(mesh.vertices),
                       dtype=[("position" , np.float32,3),
                              ("normal"   , np.float32,3),
                              ("textcoord", np.float32,2),
                              ("tangent"  , np.float32,3),
-                             ("bitangent", np.float32,3)])
+                             ("bitangent", np.float32,3),
+                             ("bone_ids", np.int32,4),
+                             ("weights", np.float32,4)])
     # Get the vertex positions and add a w=1 component
     vertPos = mesh.vertices
     add = np.ones((vertPos.shape[0], 1),dtype=np.float32)
@@ -139,6 +163,7 @@ class Object(object):
     data["normal"] = vertNorm
     data["textcoord"] = vertUV
     data["tangent"] = vertTangents
+    data["bone_ids"] = 59
     data["bitangent"] = vertBitangents
 
     # Get the indices
@@ -168,19 +193,41 @@ class Object(object):
     else:
       specTexture = Texture.getBlackTexture()
 
+    # Do skinning
+    if self.will_animate:
+      if len(mesh.bones) > 0:
+        options = options._replace(has_bones=True)
+        data["weights"] = 0
+        for bone in mesh.bones:
+          n = len(self.bones)
+          if bone.name not in self.bones:
+            self.bones[bone.name] = (n, get_node_parent(self.scene, bone.name).name, bone.offsetmatrix)
+            nn =n
+          else:
+            nn = self.bones[bone.name][0]
+          for relationship in bone.weights:
+            bone_vec_number = 0
+            for i in xrange(3):
+              if data["weights"][relationship.vertexid][bone_vec_number] > 0:
+                bone_vec_number += 1
+              else:
+                break
+            data["weights"][relationship.vertexid][bone_vec_number] = relationship.weight
+            data["bone_ids"][relationship.vertexid][bone_vec_number] = nn
+
     # Add the textures and the mesh data
     self.textures.append(texture)
-    self.meshes.append(MeshDatum(data, indices, texture, normalTexture, specTexture, options))
+    self.meshes.append(MeshDatum(name, data, indices, texture, normalTexture, specTexture, options))
 
     taskQueue.addToMainThreadQueue(self.uploadMesh, (data, indices, mesh))
 
-  
+
   def uploadMesh(self, data, indices, mesh):
     self.renderIDs.append(shader.setData(data, indices))
     logging.info("Loaded mesh {}".format(mesh.__repr__()))
 
 
-  def display(self):
+  def display(self, time=0):
     shader.load()
     t = np.eye(4, dtype=np.float32)
     t[2,0:3] = self.direction
@@ -196,6 +243,11 @@ class Object(object):
         options = getOptionNumber(meshdatum.options)
         shader['options'] = options
 
+      if meshdatum.options.has_bones:
+        if self.animation is not None:
+          bones = self.animation.get_bone_transforms(time)
+          shader['bones'] = bones
+
       # Load textures
       meshdatum.colormap.load()
       meshdatum.specularmap.load()
@@ -203,6 +255,9 @@ class Object(object):
         meshdatum.normalmap.load()
       shader.draw(gl.GL_TRIANGLES, renderID)
 
+
+  def add_animation(self, filename):
+    self.animation = Animation.Animation(filename, self.bones)
 
   def __repr__(self):
     return "<pmObject \"{}\">".format(self.name)

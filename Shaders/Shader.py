@@ -2,6 +2,7 @@ import OpenGL.GL as gl
 from collections import namedtuple
 import ctypes
 import numpy as np
+import logging
 
 currentShader = None
 
@@ -108,7 +109,10 @@ class Shader(object):
     loc = self.locations[i]
     if loc==-1:
       if not i in self.warned:
+        logging.warn("No uniform {} in shader {}".format(i, self.name))
         self.warned.add(i)
+    elif type(v) == np.ndarray and len(v.shape) == 3 and v.shape[1:] == (4, 4):
+      gl.glUniformMatrix4fv(loc, v.shape[0], gl.GL_FALSE, v)
     elif type(v) == np.ndarray and v.shape == (4, 4):
       gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, v)
     elif type(v) == np.ndarray and v.shape == (3, 3):
