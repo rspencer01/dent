@@ -234,7 +234,7 @@ class Object(object):
         self.last_unanimated_position = self.position
         self.animation = None
     if self.animation is not None:
-      self.bone_matrices = self.animation.get_bone_transforms(time, not self.follow_animation)
+      self.bone_transforms = self.animation.get_bone_transforms(time, not self.follow_animation)
 
       if self.follow_animation:
         self.position = self.last_unanimated_position +\
@@ -251,18 +251,13 @@ class Object(object):
 
     options = None
     if self.animation is not None:
-      shader['bones'] = self.bone_matrices
+      shader['bones'] = self.bone_transforms
 
     for meshdatum,renderID in zip(self.meshes,self.renderIDs):
       # Set options
       if options != getOptionNumber(meshdatum.options):
         options = getOptionNumber(meshdatum.options)
         shader['options'] = options
-
-      if meshdatum.options.has_bones:
-        if self.animation is not None:
-          bones = self.animation.get_bone_transforms(time)
-          shader['bones'] = bones
 
       # Load textures
       meshdatum.colormap.load()
