@@ -2,20 +2,39 @@ import numpy as np
 import pyassimp
 import transforms
 from collections import namedtuple
+import yaml
 
 Bone = namedtuple("Bone", ('name', 'parent_name', 'id', 'children', 'offsetmatrix'))
 
 def get_children(bones, bone):
   return [i.name for i in bones if i.parent_name == bone.name]
 
+def basic_animation(filename):
+  return {
+      'animation_filename': filename,
+      'animation_index': 0,
+      'looping': True,
+      }
+
 class Animation(object):
   def __init__(self, filename, bones):
-    self._animation = pyassimp.load(filename, pyassimp.postprocess.aiProcess_MakeLeftHanded).animations[0]
+    if filename[-5:] == '.yaml':
+      self._configuration = yaml.load(open(filename).read())
+    else:
+      self._configuration = basic_animation(filename)
+    self._animation = pyassimp.load(self._configuration['animation_filename']).animations[self._configuration['animation_index']]
+    if 'animation_fps' not in self._configuration:
+      self._configuration['animation_fps'] = self._animation.tickspersecond
+    if 'animation_frames' not in self._configuration:
+      self._configuration['animation_frames'] = int(self._animation.duration)
+
     self._bones = [Bone(i, j[1], j[0],[],j[2]) for i,j in bones.items()]
     self._bones = [Bone(i.name, i.parent_name, i.id, get_children(self._bones, i), i.offsetmatrix) for i in self._bones]
 
   def get_bone_transforms(self, time, with_root_offset=True):
-    time = int(time)
+    time = int(time * self._configuration['animation_fps']) \
+            % (self._configuration['animation_frames'])
+
     bones = np.zeros((60,4,4), dtype=np.float32)
     for i in xrange(60):
       bones[i] = np.eye(4)
@@ -41,7 +60,8 @@ class Animation(object):
 
 
   def get_root_offset(self, time):
-    time = int(time)
+    time = int(time * self._configuration['animation_fps']) \
+            % (self._configuration['animation_frames'])
 
     positionkeys = self.get_channel('Hips').positionkeys
     return positionkeys[time % len(positionkeys)].value
@@ -63,3 +83,10 @@ class Animation(object):
         return i
     return None
 
+
+  def get_state(self, time):
+    if not self._configuration['looping']:
+      time = int(time * self._configuration['animation_fps'])
+      if time > self._configuration['animation_frames'] - 1:
+        return 'finished'
+    return 'running'

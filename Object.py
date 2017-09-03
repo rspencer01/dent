@@ -230,6 +230,10 @@ class Object(object):
 
   def update(self, time=0):
     if self.animation is not None:
+      if self.animation.get_state(time) == 'finished':
+        self.last_unanimated_position = self.position
+        self.animation = None
+    if self.animation is not None:
       self.bone_matrices = self.animation.get_bone_transforms(time, not self.follow_animation)
 
       if self.follow_animation:
