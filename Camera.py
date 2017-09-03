@@ -58,6 +58,9 @@ class Camera:
   def update(self):
     """Updates the internal representation of the camera, such as the view
     matrix and direction vector."""
+    if self.lockObject is not None:
+      self.position = self.lockObject.position + self.lockDistance * self.direction * np.array((-1,-1,-1))
+
     self.position = self.move_hook(self.position)
 
     self.view = np.eye(4,dtype=np.float32)
@@ -73,8 +76,6 @@ class Camera:
     self.direction = np.array([0,0,-1])
     self.direction = self.view[:3,:3].dot(self.direction)
 
-    if self.lockObject is not None:
-      self.position = self.lockObject.position + self.lockDistance * self.direction * np.array((-1,-1,-1))
 
 
   def render(self, name=''):

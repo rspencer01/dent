@@ -75,10 +75,11 @@ class Object(object):
     self.scale = scale
     self.bones = {}
     self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
-    self.animations = []
     self.animation = None
+    self.follow_animation = False
     self.will_animate = will_animate
     self.position = np.array(position, dtype=np.float32)
+    self.last_unanimated_position = position
     if self.will_animate:
       self.offset = np.zeros(3)
     else:
@@ -227,26 +228,32 @@ class Object(object):
     logging.info("Loaded mesh {}".format(mesh.__repr__()))
 
 
-  def display(self, time=0):
+  def update(self, time=0):
+    if self.animation is not None:
+      self.bone_matrices = self.animation.get_bone_transforms(time, not self.follow_animation)
+
+      if self.follow_animation:
+        self.position = self.last_unanimated_position +\
+                          self.animation.get_root_offset(time)
+
+
+  def display(self):
     shader.load()
     t = np.eye(4, dtype=np.float32)
     t[2,0:3] = self.direction
     t[0,0:3] = self.bidirection
-    transforms.translate(t, self.position[0],self.position[1],self.position[2])
+    transforms.translate(t, self.position[0], self.position[1], self.position[2])
     shader['model'] = t
 
     options = None
+    if self.animation is not None:
+      shader['bones'] = self.bone_matrices
 
     for meshdatum,renderID in zip(self.meshes,self.renderIDs):
       # Set options
       if options != getOptionNumber(meshdatum.options):
         options = getOptionNumber(meshdatum.options)
         shader['options'] = options
-
-      if meshdatum.options.has_bones:
-        if self.animation is not None:
-          bones = self.animation.get_bone_transforms(time)
-          shader['bones'] = bones
 
       # Load textures
       meshdatum.colormap.load()
@@ -256,8 +263,11 @@ class Object(object):
       shader.draw(gl.GL_TRIANGLES, renderID)
 
 
-  def add_animation(self, filename):
+  def add_animation(self, filename, follow_animation=False):
     self.animation = Animation.Animation(filename, self.bones)
+    self.follow_animation = follow_animation
+    self.last_unanimated_position = self.position
+
 
   def __repr__(self):
     return "<pmObject \"{}\">".format(self.name)

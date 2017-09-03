@@ -14,7 +14,7 @@ class Animation(object):
     self._bones = [Bone(i, j[1], j[0],[],j[2]) for i,j in bones.items()]
     self._bones = [Bone(i.name, i.parent_name, i.id, get_children(self._bones, i), i.offsetmatrix) for i in self._bones]
 
-  def get_bone_transforms(self, time):
+  def get_bone_transforms(self, time, with_root_offset=True):
     time = int(time)
     bones = np.zeros((60,4,4), dtype=np.float32)
     for i in xrange(60):
@@ -36,21 +36,30 @@ class Animation(object):
         bones[bone.id] = lastvalidoffset.dot(t)
       for i in self.get_bone(name).children:
         dfs(i, t[:,:],lastvalidoffset)
-    dfs('Hips', np.eye(4, dtype=np.float32))
+    dfs('Hips', np.eye(4, dtype=np.float32), nooffset=not with_root_offset)
     return bones
+
+
+  def get_root_offset(self, time):
+    time = int(time)
+
+    positionkeys = self.get_channel('Hips').positionkeys
+    return positionkeys[time % len(positionkeys)].value
+
 
   def has_bone(self, n):
     return n.upper() in [i.name.upper() for i in self._bones]
+
 
   def get_bone(self, name):
     for i in self._bones:
       if i.name.upper() == name.upper():
         return i
 
+
   def get_channel(self, channelname):
     for i in self._animation.channels:
       if i.nodename.data.upper() == channelname.upper():
         return i
     return None
-
 
