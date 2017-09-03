@@ -259,6 +259,11 @@ class Object(object):
         options = getOptionNumber(meshdatum.options)
         shader['options'] = options
 
+      if meshdatum.options.has_bones:
+        if self.animation is not None:
+          bones = self.animation.get_bone_transforms(time)
+          shader['bones'] = bones
+
       # Load textures
       meshdatum.colormap.load()
       meshdatum.specularmap.load()
