@@ -9,6 +9,7 @@ import transforms
 import logging
 import taskQueue
 import threading
+import ActionController
 from collections import namedtuple
 import Animation
 
@@ -75,7 +76,7 @@ class Object(object):
     self.scale = scale
     self.bones = {}
     self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
-    self.animation = None
+    self.action_controller = None
     self.follow_animation = False
     self.will_animate = will_animate
     self.position = np.array(position, dtype=np.float32)
@@ -227,16 +228,8 @@ class Object(object):
 
 
   def update(self, time=0):
-    if self.animation is not None:
-      if self.animation.get_state(time) == 'finished':
-        self.last_unanimated_position = self.position
-        self.animation = None
-    if self.animation is not None:
-      self.bone_transforms = self.animation.get_bone_transforms(time, not self.follow_animation)
-
-      if self.follow_animation:
-        self.position = self.last_unanimated_position +\
-                          self.animation.get_root_offset(time) * self.scale
+    if self.action_controller is not None:
+      self.action_controller.update(time)
 
 
   def display(self):
@@ -249,7 +242,7 @@ class Object(object):
     shader['model'] = t
 
     options = None
-    if self.animation is not None:
+    if self.action_controller is not None:
       shader['bones'] = self.bone_transforms
 
     for meshdatum,renderID in zip(self.meshes,self.renderIDs):
@@ -267,7 +260,12 @@ class Object(object):
 
 
   def add_animation(self, filename, follow_animation=False):
-    self.animation = Animation.Animation(filename, self.bones)
+    if self.action_controller is None:
+      self.action_controller = ActionController.ActionController(self)
+
+    animation = Animation.Animation(filename, self.bones)
+    self.action_controller.add_action(animation)
+
     self.follow_animation = follow_animation
     self.last_unanimated_position = self.position
 
