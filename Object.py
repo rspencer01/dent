@@ -120,7 +120,6 @@ class Object(object):
         addNode(nod, newtrans, depth+1)
 
     t = np.eye(4)
-    t[:3] *= self.scale
     addNode(self.scene.rootnode, t)
 
 
@@ -215,7 +214,6 @@ class Object(object):
                 break
             data["weights"][relationship.vertexid][bone_vec_number] = relationship.weight
             data["bone_ids"][relationship.vertexid][bone_vec_number] = nn
-
     # Add the textures and the mesh data
     self.textures.append(texture)
     self.meshes.append(MeshDatum(name, data, indices, texture, normalTexture, specTexture, options))
@@ -238,7 +236,7 @@ class Object(object):
 
       if self.follow_animation:
         self.position = self.last_unanimated_position +\
-                          self.animation.get_root_offset(time)
+                          self.animation.get_root_offset(time) * self.scale
 
 
   def display(self):
@@ -246,6 +244,7 @@ class Object(object):
     t = np.eye(4, dtype=np.float32)
     t[2,0:3] = self.direction
     t[0,0:3] = self.bidirection
+    t[0:3,0:3] *= self.scale
     transforms.translate(t, self.position[0], self.position[1], self.position[2])
     shader['model'] = t
 
