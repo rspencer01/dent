@@ -77,7 +77,6 @@ class Object(object):
     self.bones = {}
     self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
     self.action_controller = None
-    self.follow_animation = False
     self.will_animate = will_animate
     self.position = np.array(position, dtype=np.float32)
     self.last_unanimated_position = position
@@ -259,14 +258,13 @@ class Object(object):
       shader.draw(gl.GL_TRIANGLES, renderID)
 
 
-  def add_animation(self, filename, follow_animation=False):
+  def add_animation(self, filename):
     if self.action_controller is None:
       self.action_controller = ActionController.ActionController(self)
 
     animation = Animation.Animation(filename, self.bones)
     self.action_controller.add_action(animation)
 
-    self.follow_animation = follow_animation
     self.last_unanimated_position = self.position
 
 
