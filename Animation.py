@@ -17,7 +17,7 @@ def basic_animation(filename):
       }
 
 class Animation(object):
-  def __init__(self, filename, bones):
+  def __init__(self, filename, bones, looping=False):
     if filename[-5:] == '.yaml':
       self._configuration = yaml.load(open(filename).read())
     else:
@@ -27,6 +27,7 @@ class Animation(object):
       self._configuration['animation_fps'] = self._animation.tickspersecond
     if 'animation_frames' not in self._configuration:
       self._configuration['animation_frames'] = int(self._animation.duration)
+    self._configuration['looping'] = self._configuration['looping'] and looping
 
     self._bones = [Bone(i, j[1], j[0],[],j[2]) for i,j in bones.items()]
     self._bones = [Bone(i.name, i.parent_name, i.id, get_children(self._bones, i), i.offsetmatrix) for i in self._bones]

@@ -4,17 +4,19 @@ from Animation import Animation
 class ActionController(object):
   """Controls the action (movement etc) of an asset."""
 
-  def __init__(self, owner, configuration_file=None):
+  def __init__(self, owner, configuration_file=None, follow_animation=True):
     self.actions = []
     self.current_action_id = 0
     self.owner = owner
+    self.last_action_changeover = 0
+    self.chaining = False
     if configuration_file:
       self._configuration = yaml.load(open(configuration_file).read())
       for i in self._configuration['actions']:
-        animation = Animation(i['file'], owner.bones)
+        animation = Animation(i['file'], owner.bones, looping=False)
         self.actions.append(animation)
-      self.owner.follow_animation = True
-
+      self.chaining = self._configuration['chaining']
+      self.owner.follow_animation = follow_animation
 
 
   def add_action(self, action):
@@ -27,6 +29,17 @@ class ActionController(object):
 
 
   def update(self, time):
-    self.owner.bone_transforms = self.current_animation().get_bone_transforms(time, False)
-    self.owner.position = self.owner.last_unanimated_position +\
-                      self.current_animation().get_root_offset(time) * self.owner.scale
+    time_into_action = time - self.last_action_changeover
+    if self.current_animation().get_state(time_into_action) == 'finished':
+      self.last_action_changeover = time
+
+      self.owner.last_unanimated_position = self.owner.position -\
+                      self.current_animation().get_root_offset(time_into_action) * self.owner.scale
+
+      self.current_action_id = (self.current_action_id + 1) % len(self.actions)
+    else:
+      self.owner.bone_transforms = self.current_animation() \
+                                       .get_bone_transforms(time_into_action, not self.chaining)
+      if self.chaining:
+        self.owner.position = self.owner.last_unanimated_position +\
+                          self.current_animation().get_root_offset(time_into_action) * self.owner.scale
