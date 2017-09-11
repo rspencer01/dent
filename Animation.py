@@ -68,6 +68,12 @@ class Animation(object):
     return positionkeys[time % len(positionkeys)].value
 
 
+  def get_end_position(self):
+    """Returns the position of the animation in the last frame."""
+    positionkeys = self.get_channel('Hips').positionkeys
+    return positionkeys[-1].value
+
+
   def has_bone(self, n):
     return n.upper() in [i.name.upper() for i in self._bones]
 

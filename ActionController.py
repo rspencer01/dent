@@ -1,4 +1,5 @@
 import yaml
+import random
 from Animation import Animation
 
 class ActionController(object):
@@ -17,6 +18,7 @@ class ActionController(object):
         self.actions.append(animation)
       self.chaining = self._configuration['chaining']
       self.owner.follow_animation = follow_animation
+    self.action_weight = lambda x: 1
 
 
   def add_action(self, action):
@@ -36,7 +38,10 @@ class ActionController(object):
       self.owner.last_unanimated_position = self.owner.position -\
                       self.current_animation().get_root_offset(time_into_action) * self.owner.scale
 
-      self.current_action_id = (self.current_action_id + 1) % len(self.actions)
+      weights = [(-self.action_weight(self.actions[i]),i) for i in xrange(len(self.actions))]
+      random.shuffle(weights)
+      weights.sort(key=lambda x: x[0])
+      self.current_action_id = weights[0][1]
     else:
       self.owner.bone_transforms = self.current_animation() \
                                        .get_bone_transforms(time_into_action, not self.chaining)
