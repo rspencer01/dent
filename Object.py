@@ -192,6 +192,7 @@ class Object(object):
       specTexture.loadFromImage(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory))
     else:
       specTexture = Texture.getBlackTexture()
+      specTexture.textureType = Texture.SPECULARMAP
 
     # Do skinning
     if self.will_animate:
