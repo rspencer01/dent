@@ -3,13 +3,15 @@ Dent
 
 Dent is a work-in-progress 3D game engine.  The idea is to get most of the boring stuff out of the way so that you can develop your game quickly, but still allow access to lower level objects, so that if you need to do any finicky graphics thing you can.
 
+Dent is developed on Ubuntu, but has been known to work on Windows.
+
 Should I Use Dent?
 ------------------
 If you want to hack together a game in Python, don't want to fiddle around with OpenGL much and  are not too concerned about high levels of polish, I'd say "yes".
 
 Dent offers smoothing over some of the bumps of getting up and running with OpenGL and python game development.  Some of the features offered are:
 
- * Shaders: 
+ * Shaders:
    * Loading and compiling GLSL from disk
    * `#include` one file inside another
    * Smart uniform loading
@@ -30,7 +32,11 @@ Dent is in no way complete.  It is very much a work in progress, with bits being
 
 How Do I Get Dent?
 ------------------
-At the moment it is suggested to clone the Dent repository into a folder called `dent` inside your project (see below).  In the future this may change to a `pip install` or a `python setup.py` installation.
+```
+$ git clone https://github.com/rspencer01/dent.git
+$ cd dent
+$ pip install .
+```
 
 Minimal Directory Layout
 ------------------------
@@ -38,10 +44,6 @@ Minimal Directory Layout
 For a pretty minimal game, check out [pong](https://github.com/rspencer01/pong).  In overview, a typical game would have the following directory structure:
 
 ~~~
-├── dent
-│   ├── args.py
-│   ├── ...
-│   └── transforms.py
 ├── my-awesome-game.py
 ├── scenes
 │   ├── __init__.py
