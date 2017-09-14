@@ -5,5 +5,5 @@ setup(name='dent',
     description='A 3D game engine',
     author='Robert Spencer',
     licence='MIT',
-    packages=['dent'],
+    packages=['dent', 'dent.Shaders', 'dent.pycfg'],
     zip_safe=False)
