@@ -22,11 +22,18 @@ class Animation(object):
       self._configuration = yaml.load(open(filename).read())
     else:
       self._configuration = basic_animation(filename)
-    self._animation = pyassimp.load(self._configuration['animation_filename']).animations[self._configuration['animation_index']]
+    if 'animation_filename' in self._configuration:
+      self._animation = pyassimp.load(self._configuration['animation_filename']).animations[self._configuration['animation_index']]
+    else:
+      self._animation = False
     if 'animation_fps' not in self._configuration:
       self._configuration['animation_fps'] = self._animation.tickspersecond
     if 'animation_frames' not in self._configuration:
       self._configuration['animation_frames'] = int(self._animation.duration)
+    if 'end_position' not in self._configuration:
+      self._configuration['end_position'] = [0,0,0]
+    if 'end_rotation' not in self._configuration:
+      self._configuration['end_rotation'] = 0
     self._configuration['looping'] = self._configuration['looping'] and looping
 
     self._bones = [Bone(i, j[1], j[0],[],j[2]) for i,j in bones.items()]
@@ -56,7 +63,19 @@ class Animation(object):
         bones[bone.id] = lastvalidoffset.dot(t)
       for i in self.get_bone(name).children:
         dfs(i, t[:,:],lastvalidoffset)
-    dfs('Hips', np.eye(4, dtype=np.float32), nooffset=not with_root_offset)
+    if self._animation:
+      dfs('Hips', np.eye(4, dtype=np.float32), nooffset=not with_root_offset)
+    else:
+      for i in xrange(60):
+        bones[i] = np.eye(4)
+        rotation = self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames']
+        translation = self._configuration['end_position'] * float(time) / self._configuration['animation_frames']
+        bones[i][0][0] = np.cos(rotation)
+        bones[i][2][2] = np.cos(rotation)
+        bones[i][2][0] = -np.sin(rotation)
+        bones[i][0][2] = np.sin(rotation)
+        if with_root_offset:
+          bones[i][3,0:3] = translation
     return bones
 
 
@@ -64,14 +83,20 @@ class Animation(object):
     time = int(time * self._configuration['animation_fps']) \
             % (self._configuration['animation_frames'])
 
-    positionkeys = self.get_channel('Hips').positionkeys
-    return positionkeys[time % len(positionkeys)].value
+    if self._animation:
+      positionkeys = self.get_channel('Hips').positionkeys
+      return positionkeys[time % len(positionkeys)].value
+    else:
+      return np.array(self._configuration['end_position']) * time / float(self._configuration['animation_frames'])
 
 
   def get_end_position(self):
     """Returns the position of the animation in the last frame."""
-    positionkeys = self.get_channel('Hips').positionkeys
-    return positionkeys[-1].value
+    if self._animation:
+      positionkeys = self.get_channel('Hips').positionkeys
+      return positionkeys[-1].value
+    else:
+      return self._configuration['end_position']
 
 
   def has_bone(self, n):
