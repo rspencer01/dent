@@ -5,7 +5,7 @@ from Shaders import *
 class Camera:
   def __init__(
           self,
-          position=np.array([0,0,0]),
+          position=np.array([0.,0.,0.]),
           lockObject=None,
           lockDistance=50,
           move_hook=lambda x:x):
