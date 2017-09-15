@@ -68,14 +68,12 @@ class Animation(object):
     else:
       for i in xrange(60):
         bones[i] = np.eye(4)
-        rotation = self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames']
-        translation = self._configuration['end_position'] * float(time) / self._configuration['animation_frames']
-        bones[i][0][0] = np.cos(rotation)
-        bones[i][2][2] = np.cos(rotation)
-        bones[i][2][0] = -np.sin(rotation)
-        bones[i][0][2] = np.sin(rotation)
+        bones[i][0][0] = np.cos(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+        bones[i][2][2] = np.cos(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+        bones[i][2][0] = -np.sin(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+        bones[i][0][2] = np.sin(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
         if with_root_offset:
-          bones[i][3,0:3] = translation
+          bones[i][3,0:3] = np.array(self._configuration['end_position']) * float(time) / self._configuration['animation_frames']
     return bones
 
 
@@ -96,7 +94,15 @@ class Animation(object):
       positionkeys = self.get_channel('Hips').positionkeys
       return positionkeys[-1].value
     else:
-      return self._configuration['end_position']
+      return np.array(self._configuration['end_position'])
+
+
+  def get_end_rotation(self):
+    """Returns the rotation of the animation in the last frame."""
+    if self._animation:
+      return 0
+    else:
+      return self._configuration['end_rotation']
 
 
   def has_bone(self, n):

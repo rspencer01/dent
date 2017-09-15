@@ -86,6 +86,7 @@ class Object(object):
       self.offset = np.array(offset, dtype=np.float32)
     self.direction = np.array((0,0,1), dtype=float)
     self.bidirection = np.array((1,0,0), dtype=float)
+    self.angle = 0.
     self.daemon = daemon
 
     if self.daemon:
@@ -237,8 +238,10 @@ class Object(object):
     t = np.eye(4, dtype=np.float32)
     t[2,0:3] = self.direction
     t[0,0:3] = self.bidirection
+    t[0][0:3], t[2][0:3] = np.cos(self.angle) * t[0][0:3] + np.sin(self.angle) * t[2][0:3],\
+                           np.cos(self.angle) * t[2][0:3] - np.sin(self.angle) * t[0][0:3]
     t[0:3,0:3] *= self.scale
-    transforms.translate(t, self.position[0], self.position[1], self.position[2])
+    transforms.translate(t, self.last_unanimated_position[0], self.last_unanimated_position[1], self.last_unanimated_position[2])
     shader['model'] = t
 
     options = None
