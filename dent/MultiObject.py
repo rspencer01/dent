@@ -2,7 +2,7 @@ import numpy as np
 import pyassimp
 import Camera
 import Texture
-import Image
+from PIL import Image
 import os
 import Shaders
 import transforms

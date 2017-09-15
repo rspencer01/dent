@@ -1,7 +1,7 @@
 import OpenGL.GL as gl
 import numpy as np
 import scipy.ndimage
-import Image
+from PIL import Image
 import logging
 import sys
 import taskQueue

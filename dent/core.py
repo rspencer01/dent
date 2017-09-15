@@ -11,7 +11,7 @@ import taskQueue
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
-import Image
+from PIL import Image
 import messaging
 import random
 
