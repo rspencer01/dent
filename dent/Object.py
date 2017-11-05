@@ -4,6 +4,7 @@ import numpy as np
 import pyassimp
 import pyassimp.material
 import Texture
+import TextureManager
 import Shaders
 import transforms
 import logging
@@ -171,18 +172,14 @@ class Object(object):
     indices = mesh.faces.reshape((-1,))
 
     # Load the texture
-    texture = Texture.Texture(Texture.COLORMAP, nonblocking=self.daemon)
     if getTextureFile(mesh.material, pyassimp.material.aiTextureType_DIFFUSE, self.directory):
-      logging.info("Getting texture from {}".format(getTextureFile(mesh.material, pyassimp.material.aiTextureType_DIFFUSE, self.directory)))
-      texture.loadFromImage(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_DIFFUSE, self.directory))
+      texture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_DIFFUSE, self.directory), Texture.COLORMAP)
     else:
       texture = Texture.getWhiteTexture();
 
     if getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory):
-      logging.info("Getting texture from {}".format(getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory)))
-      normalTexture = Texture.Texture(Texture.NORMALMAP, nonblocking=self.daemon)
+      normalTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory), Texture.NORMALMAP)
       options = options._replace(has_bumpmap=True)
-      normalTexture.loadFromImage(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory))
     else:
       normalTexture = None
       options = options._replace(has_bumpmap=False)
