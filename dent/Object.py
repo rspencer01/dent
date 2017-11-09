@@ -186,8 +186,7 @@ class Object(object):
 
     if getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory):
       logging.info("Getting texture from {}".format(getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory)))
-      specTexture = Texture.Texture(Texture.SPECULARMAP, nonblocking=self.daemon)
-      specTexture.loadFromImage(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory))
+      specTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory), Texture.SPECULARMAP)
     else:
       specTexture = Texture.getBlackTexture()
       specTexture.textureType = Texture.SPECULARMAP
