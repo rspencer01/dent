@@ -19,11 +19,16 @@ class ShaderCompileException(Exception):
 
 class ShaderFile(object):
   def __init__(self, filename, type):
-    source = open(filename).read()
+    self._filename = filename
+    self._type = type
+    self.load_from_file()
+
+  def load_from_file(self):
+    source = open(self._filename).read()
     p = re.compile(r"#include\W(.+);")
     m = p.search(source)
     while m:
-      included = ShaderFile(m.group(1), type)
+      included = ShaderFile(m.group(1), self._type)
       source = source.replace("#include {};".format(m.group(1)), included.getSource())
       m = p.search(source)
     self.uniforms = []
@@ -41,7 +46,6 @@ class ShaderFile(object):
 
     self.uniforms = list(set(self.uniforms))
     self.program = None
-    self.type = type
 
 
   def getSource(self):
@@ -51,7 +55,7 @@ class ShaderFile(object):
 
   def getProgram(self):
     if self.program is None:
-      self.program = gl.glCreateShader(self.type)
+      self.program = gl.glCreateShader(self._type)
       gl.glShaderSource(self.program, self.getSource())
       gl.glCompileShader(self.program)
       # Find compile errors

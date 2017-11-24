@@ -22,7 +22,6 @@ class Shader(object):
     self.name = name
     # What do we stand for?
     self.program = gl.glCreateProgram()
-    self.programs = []
     # Where the uniform variables live
     self.locations = {}
     # The info for the objects of this shader
@@ -42,8 +41,6 @@ class Shader(object):
     gl.glLinkProgram(self.program)
     if gl.glGetProgramiv(self.program, gl.GL_LINK_STATUS) != gl.GL_TRUE:
       raise RuntimeError(gl.glGetProgramInfoLog(self.program))
-    for prog in self.programs:
-      gl.glDetachShader(self.program, prog)
 
   def load(self):
     # Check if we are loaded already.  If not do so.
@@ -136,7 +133,7 @@ class Shader(object):
       self._setitem(i,v)
     self.unsetUniforms = {}
 
-  def draw(self,type,objectIndex,num=0):
+  def draw(self, type, objectIndex, num=0):
     self.load()
     self._setitems()
     gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
