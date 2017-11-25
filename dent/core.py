@@ -69,7 +69,7 @@ def takeScreenshot():
   viewport = gl.glGetIntegerv(gl.GL_VIEWPORT)
   pixels = gl.glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], gl.GL_RGB, gl.GL_UNSIGNED_BYTE)
 
-  image = Image.fromstring("RGB", (viewport[2]-viewport[0], viewport[3]-viewport[0]), pixels)
+  image = Image.frombytes("RGB", (viewport[2]-viewport[0], viewport[3]-viewport[0]), pixels)
   image = image.transpose( Image.FLIP_TOP_BOTTOM)
   image.save("screenshot.png")
 
