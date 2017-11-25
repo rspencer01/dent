@@ -79,14 +79,8 @@ def glut_timer_handler(fps):
 def timer_handler(fps):
   if 'w' in keys:
     scene.camera.move(scene.cameraSpeed * 1.0/fps)
-    if scene.camera.lockObject:
-      scene.Characters.setCharacterDirection(scene.camera.direction)
-      scene.Characters.move(0.5)
   if 's' in keys:
     scene.camera.move(scene.cameraSpeed * -1.0/fps)
-    if scene.camera.lockObject:
-      scene.Characters.setCharacterDirection(scene.camera.direction)
-      scene.Characters.move(-0.5)
   if 'e' in keys:
     scene.camera.rotUpDown(1.5/fps)
   if 'q' in keys:
