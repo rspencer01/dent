@@ -1,3 +1,4 @@
+import OpenGL.GL as gl
 import Texture
 from RenderStage import RenderStage
 import transforms
@@ -5,7 +6,7 @@ import Shaders
 import Camera
 import numpy as np
 
-SHADOW_SIZE = 1024
+SHADOW_SIZE = 2048
 
 class Shadows(object):
 
@@ -20,8 +21,20 @@ class Shadows(object):
     for i in self.renderStages:
       i.reshape(SHADOW_SIZE, SHADOW_SIZE)
     self.renderStages[0].displayDepthTexture.loadAs(Texture.SHADOWS1)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_COMPARE_MODE, gl.GL_COMPARE_REF_TO_TEXTURE)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_COMPARE_FUNC, gl.GL_GREATER)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
     self.renderStages[1].displayDepthTexture.loadAs(Texture.SHADOWS2)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_COMPARE_MODE, gl.GL_COMPARE_REF_TO_TEXTURE)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_COMPARE_FUNC, gl.GL_GREATER)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
     self.renderStages[2].displayDepthTexture.loadAs(Texture.SHADOWS3)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_COMPARE_MODE, gl.GL_COMPARE_REF_TO_TEXTURE)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_COMPARE_FUNC, gl.GL_GREATER)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
 
     self.projections = []
     for i in range(3):
