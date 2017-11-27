@@ -23,15 +23,16 @@ class TransformFeedbackShader(Shader):
     return tbo
 
   def read_output_buffer(self, tbo, count):
-    gl.glBindBuffer(gl.GL_TRANSFORM_FEEDBACK_BUFFER, tbo)
+    gl.glBindBufferBase(gl.GL_TRANSFORM_FEEDBACK_BUFFER, 0, tbo)
     return gl.glGetBufferSubData(gl.GL_TRANSFORM_FEEDBACK_BUFFER, 0, count)
 
-  def draw(self, type, objectIndex, count=0):
+  def draw(self, type, objectIndex, tbo, count=0):
     """Starts a transform feedback draw.  Return the number of items actually
     created (may differ from `num` due to geometry shaders)."""
     self.load()
     self._setitems()
     gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
+    gl.glBindBufferBase(gl.GL_TRANSFORM_FEEDBACK_BUFFER, 0, tbo)
     gl.glEnable(gl.GL_RASTERIZER_DISCARD)
     query = gl.glGenQueries(1)
     gl.glBeginQuery(gl.GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query)
