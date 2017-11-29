@@ -17,7 +17,7 @@ class Camera:
     changes with the new position.  It must return the actual position of the
     camera.  This is useful, for example to prevent the camera from moving
     within objects."""
-    self.position = position
+    self.position = np.array(position)
     self.lockObject = lockObject
     self.lockDistance = lockDistance
 
@@ -61,7 +61,7 @@ class Camera:
     if self.lockObject is not None:
       self.position = self.lockObject.position + self.lockDistance * self.direction * np.array((-1,-1,-1))
 
-    self.position = self.move_hook(self.position)
+    self.position = np.array(self.move_hook(self.position), dtype=np.float32)
 
     self.view = np.eye(4,dtype=np.float32)
     view2 = np.eye(4,dtype=np.float32)
@@ -83,6 +83,6 @@ class Camera:
     `{name}CameraDirection` and `{name}CameraPosition` for a given name.  This
     allows for multiple cameras to be "rendered" simultaniously."""
     self.update()
-    setUniform(name+'View',self.view.T)
-    setUniform(name+'CameraDirection',self.direction)
-    setUniform(name+'CameraPosition',self.position)
+    updateUniversalUniform(name+'View',self.view.T)
+    updateUniversalUniform(name+'CameraDirection',self.direction.copy())
+    updateUniversalUniform(name+'CameraPosition',self.position.copy())
