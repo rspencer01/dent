@@ -62,7 +62,7 @@ class InstancedShader(GenericShader):
     gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
     gl.glDrawElementsInstancedBaseInstance(
                                type,
-                               self.objInfo[objectIndex].renderVerts,
+                               self.objInfo[objectIndex].renderVerts/3,
                                gl.GL_UNSIGNED_INT,
                                None,
                                num,
