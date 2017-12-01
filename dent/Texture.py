@@ -213,6 +213,7 @@ class Texture:
 
 whiteTexture = None
 blackTexture = None
+blueTexture = None
 
 def getWhiteTexture():
   global whiteTexture
@@ -227,3 +228,10 @@ def getBlackTexture():
     blackTexture = Texture(COLORMAP)
     blackTexture.loadData(np.zeros((1,1,4),dtype=np.float32))
   return blackTexture
+
+def getBlueTexture():
+  global blueTexture
+  if blueTexture is None:
+    blueTexture = Texture(NORMALMAP)
+    blueTexture.loadData(np.array([[[0,0,1,1]]],dtype=np.float32))
+  return blueTexture
