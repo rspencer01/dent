@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+import dent.messaging
+
+COL_RESET = u"\u001b[0m"
+COL_GREEN = u"\u001b[32m"
+COL_B_BLUE = u"\u001b[34;1m"
+COL_BLUE = u"\u001b[33m"
+
+if __name__ == "__main__":
+  import argparse
+  parser = argparse.ArgumentParser(description='Dent messaging service inspector.')
+  parser.add_argument('log',
+      default='replay.log',
+      nargs='?',
+      help='log file to inspect')
+  parser.add_argument('--color', '-c',
+      help='use color',
+      action='store_true')
+  args = parser.parse_args()
+
+  for message in dent.messaging.load_messages(args.log):
+    if args.color:
+      print u"{1}{0.time:.2f} {2}{0.type} {4}{3}{0.data}{4}".format(
+          message,
+          COL_GREEN,
+          COL_B_BLUE,
+          COL_BLUE,
+          COL_RESET)
+    else:
+      print message

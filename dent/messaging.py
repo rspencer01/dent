@@ -77,15 +77,3 @@ def load_replay(filename='replay.log'):
   messages = load_messages(filename)
   messages.popleft()
   replaying = True
-
-if __name__ == "__main__":
-  import argparse
-  parser = argparse.ArgumentParser(description='Magrathea messaging service inspector.')
-  parser.add_argument('log', 
-      default='replay.log', 
-      nargs='?',
-      help='log file to inspect')
-  args = parser.parse_args()
-
-  for message in load_messages(args.log):
-    print message

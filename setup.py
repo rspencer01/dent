@@ -6,4 +6,5 @@ setup(name='dent',
     author='Robert Spencer',
     licence='MIT',
     packages=['dent', 'dent.Shaders', 'dent.pycfg'],
+    scripts=['bin/dent-messages'],
     zip_safe=False)
