@@ -45,7 +45,7 @@ class Configuration(object):
 
   def parse_key_val(self, key, value):
     if key not in self._schema:
-      logging.warn("Key '{}' not in schema.".format(key))
+      logging.info("Key '{}' not in schema. Ignoring".format(key))
       return key, value
     if self._schema[key]['type'] == 'present':
       if value:

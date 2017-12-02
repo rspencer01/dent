@@ -19,10 +19,12 @@ import args
 args.parse()
 
 LOGGING_FORMAT = '%(asctime)-15s <%(threadName)-12s> [%(module)-12s] - %(message)s'
-if args.args.verbose:
+if args.args.verbose == 2:
   logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)
-else:
+elif args.args.verbose == 1:
   logging.basicConfig(format=LOGGING_FORMAT, level=logging.INFO)
+else:
+  logging.basicConfig(format=LOGGING_FORMAT, level=logging.WARN)
 
 import configuration
 
