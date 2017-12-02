@@ -12,10 +12,10 @@ class TesselationShader(Shader):
     self.addProgram(gl.GL_TESS_EVALUATION_SHADER, tessE)
     self.build()
 
-  def draw(self, number, objectIndex):
+  def draw(self, number, objectIndex, patchVertices=3):
     self.load()
     self._setitems()
     gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
-    gl.glPatchParameteri(gl.GL_PATCH_VERTICES, 3)
+    gl.glPatchParameteri(gl.GL_PATCH_VERTICES, patchVertices)
     gl.glDrawArrays(gl.GL_PATCHES, 0, number)
     gl.glFlush()
