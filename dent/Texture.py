@@ -57,6 +57,15 @@ if textureUnits < 32:
 
 activeTexture = None
 
+pool = set()
+
+def get_texture_id():
+  """This function must be run on the OpenGL thread."""
+  if len(pool) == 0:
+    pool.update(list(gl.glGenTextures(10)))
+    logging.info("Requested 10 new textures")
+  return pool.pop()
+
 class Texture:
   def __init__(self, type, nonblocking=False, internal_format=gl.GL_RGBA32F):
     """Creates a new texture of the given type.  If nonblocking is specified
@@ -75,7 +84,7 @@ class Texture:
 
 
   def initialise(self):
-    self.id = gl.glGenTextures(1)
+    self.id = get_texture_id()
     self.load()
 
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
@@ -83,7 +92,7 @@ class Texture:
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR)
 
-    logging.info("New texture {}".format(self.id))
+    logging.debug("New texture {}".format(self.id))
 
 
   def loadData(
@@ -208,8 +217,7 @@ class Texture:
 
   def __del__(self):
     logging.info("Freeing texture {}".format(self.id))
-    gl.glDeleteTextures(self.id)
-
+    pool.update([self.id])
 
 whiteTexture = None
 blackTexture = None
