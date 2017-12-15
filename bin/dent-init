@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+import argparse
+import os
+import sys
+
+DIRECTORIES = ["scenes", "shaders"]
+DEFAULT_FILES = {
+    ('{}', '{}'):
+        "#!/usr/bin/env python\n"+
+        "import dent.core",
+
+    ('{}', 'scenes', '__init__.py'):
+        "from MainScene import MainScene\n"+
+        "\n"+
+        "__scenes__ = set([MainScene])\n"+
+        "__starting_scene__ = MainScene\n",
+
+    ('{}', 'scenes', 'MainScene.py'):
+        "from dent.Scene import Scene\n"+
+        "\n"+
+        "class MainScene(Scene):\n"+
+        "  pass\n"
+    }
+EXECUTABLE_FILES = [('{}', '{}')]
+
+parser = argparse.ArgumentParser()
+parser.add_argument('directory')
+
+args = parser.parse_args()
+
+if os.path.exists(args.directory):
+  print "ERROR: Directory '{}' already exists".format(args.directory)
+  sys.exit(1)
+
+os.makedirs(args.directory)
+
+for subdirectory in DIRECTORIES:
+  os.makedirs(os.path.join(args.directory, subdirectory))
+
+for default_file in DEFAULT_FILES:
+  file_path = os.path.join(*[i.format(args.directory) for i in default_file])
+  open(file_path, 'w').write(DEFAULT_FILES[default_file])
+
+for executable_file in EXECUTABLE_FILES:
+  file_path = os.path.join(*[i.format(args.directory) for i in executable_file])
+  st = os.stat(file_path)
+  os.chmod(file_path, st.st_mode | 0o111)
