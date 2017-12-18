@@ -58,6 +58,7 @@ class Object(object):
       scale=1,
       position=np.zeros(3),
       offset=np.zeros(3),
+      angle=0.,
       will_animate=False,
       daemon=True):
 
@@ -87,7 +88,7 @@ class Object(object):
       self.offset = np.array(offset, dtype=np.float32)
     self.direction = np.array((0,0,1), dtype=float)
     self.bidirection = np.array((1,0,0), dtype=float)
-    self.angle = 0.
+    self.angle = angle
     self.daemon = daemon
 
     if self.filename[-4:] == '.fbx':
