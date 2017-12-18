@@ -192,6 +192,8 @@ glut.glutIgnoreKeyRepeat(1)
 logging.info("Obtained OpenGL "+gl.glGetString(gl.GL_VERSION))
 logging.info("Uniform limit (vertex) {}".format(
   str(gl.glGetIntegerv(gl.GL_MAX_VERTEX_UNIFORM_COMPONENTS))))
+logging.info("Tesselation limit {}".format(
+  str(gl.glGetIntegerv(gl.GL_MAX_TESS_GEN_LEVEL))))
 gl.glEnable(gl.GL_DEPTH_TEST)
 gl.glPolygonMode(gl.GL_FRONT_AND_BACK,gl.GL_FILL);
 gl.glEnable(gl.GL_BLEND)
