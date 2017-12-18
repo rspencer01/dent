@@ -90,6 +90,9 @@ class Object(object):
     self.angle = 0.
     self.daemon = daemon
 
+    if self.filename[-4:] == '.fbx':
+      self.scale *= 0.01
+
     if self.daemon:
       thread = threading.Thread(target=self.loadFromFile)
       thread.setDaemon(True)
