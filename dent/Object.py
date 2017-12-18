@@ -44,6 +44,7 @@ def getTextureFile(material, textureType, directory=None):
   elif textureType == pyassimp.material.aiTextureType_SPECULAR:
     if os.path.exists(directory+'/{}.spec.png'.format(material.properties[('name', 0)])):
       return '{}.spec.png'.format(material.properties[('name', 0)])
+  logging.debug("Texture {}/{} not found".format(directory,material.properties[('name', 0)]))
 
 shader             = Shaders.getShader('general-noninstanced')
 shader['colormap'] = Texture.COLORMAP_NUM
@@ -90,6 +91,9 @@ class Object(object):
     self.bidirection = np.array((1,0,0), dtype=float)
     self.angle = angle
     self.daemon = daemon
+
+    self.bounding_box_min = np.zeros(3, dtype=float) + 1e10
+    self.bounding_box_max = np.zeros(3, dtype=float) - 1e10
 
     if self.filename[-4:] == '.fbx':
       self.scale *= 0.01
@@ -163,6 +167,12 @@ class Object(object):
 
     vertUV = mesh.texturecoords[0][:, [0,1]]
     vertUV[:, 1] = 1 - vertUV[:, 1]
+
+    # Update the bounding box
+    self.bounding_box_min = np.min([self.bounding_box_min,
+                                    np.min(vertPos, 0)],0)
+    self.bounding_box_max = np.max([self.bounding_box_min,
+                                    np.max(vertPos, 0)],0)
 
     # Set the data
     data["position"] = vertPos
