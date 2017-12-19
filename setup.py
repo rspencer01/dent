@@ -8,4 +8,7 @@ setup(name='dent',
     packages=['dent', 'dent.Shaders', 'dent.pycfg'],
     scripts=['bin/dent-messages',
              'bin/dent-init'],
-    zip_safe=False)
+    zip_safe=False,
+    test_suite='nose.collector',
+    tests_require=['nose'],
+    )
