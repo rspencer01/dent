@@ -24,7 +24,7 @@ class DeferredRenderScene(Scene):
     self.camera = Camera()
     self.renderPipeline = RenderPipeline(
         [
-          RenderStage(render_func=self.display, aux_buffer=True),
+          RenderStage(render_func=self.display),
           RenderStage(render_func=self._lighting_display, clear_depth=False, final_stage=True)
         ]
       )
