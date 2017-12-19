@@ -208,6 +208,8 @@ if args.args.replay is None:
   glut.glutKeyboardUpFunc(glut_keyboard_up_handler)
 glut.glutSetCursor(glut.GLUT_CURSOR_NONE)
 
+import Texture
+Texture.init()
 
 import scenes as game_scenes
 

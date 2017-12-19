@@ -49,11 +49,12 @@ PAGED_TEXTURE_3_NUM = 18
 SPECULARMAP = gl.GL_TEXTURE19
 SPECULARMAP_NUM = 19
 
-textureUnits = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_IMAGE_UNITS)
-logging.info("Found {} texture units".format(textureUnits))
-if textureUnits < 32:
-  logging.fatal("Insufficient texture units.  Require 32, have {}".format(textureUnits))
-  sys.exit(1)
+def init():
+  textureUnits = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_IMAGE_UNITS)
+  logging.info("Found {} texture units".format(textureUnits))
+  if textureUnits < 32:
+    logging.fatal("Insufficient texture units.  Require 32, have {}".format(textureUnits))
+    sys.exit(1)
 
 activeTexture = None
 
