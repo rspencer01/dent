@@ -44,6 +44,9 @@ def getTextureFile(material, textureType, directory=None):
   elif textureType == pyassimp.material.aiTextureType_SPECULAR:
     if os.path.exists(directory+'/{}.spec.png'.format(material.properties[('name', 0)])):
       return '{}.spec.png'.format(material.properties[('name', 0)])
+  if ('file', textureType) in material.properties:
+    if os.path.exists(directory+'/{}'.format(material.properties[('file', textureType)])):
+      return material.properties[('file', textureType)]
   logging.debug("Texture {}/{} not found".format(directory,material.properties[('name', 0)]))
 
 shader             = Shaders.getShader('general-noninstanced')
@@ -193,6 +196,9 @@ class Object(object):
 
     if getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory):
       normalTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory), Texture.NORMALMAP)
+      options = options._replace(has_bumpmap=True)
+    elif getTextureFile(mesh.material, pyassimp.material.aiTextureType_HEIGHT, self.directory):
+      normalTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_HEIGHT, self.directory), Texture.NORMALMAP)
       options = options._replace(has_bumpmap=True)
     else:
       normalTexture = None
