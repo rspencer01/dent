@@ -28,25 +28,25 @@ def getShader(name, tess=False, instance=False, geom=False):
       if not instance:
         shaders[name] = GenericShader(
                                name,
-                               ShaderFile('shaders/'+name+'/fragment.shd', gl.GL_FRAGMENT_SHADER),
-                               ShaderFile('shaders/'+name+'/vertex.shd', gl.GL_VERTEX_SHADER),
-                               geom and ShaderFile('shaders/'+name+'/geometry.shd', gl.GL_GEOMETRY_SHADER)
+                               ShaderFile(name, gl.GL_FRAGMENT_SHADER),
+                               ShaderFile(name, gl.GL_VERTEX_SHADER),
+                               geom and ShaderFile(name, gl.GL_GEOMETRY_SHADER)
                                )
       else:
         shaders[name] = InstancedShader(
                                name,
-                               ShaderFile('shaders/'+name+'/fragment.shd', gl.GL_FRAGMENT_SHADER),
-                               ShaderFile('shaders/'+name+'/vertex.shd', gl.GL_VERTEX_SHADER),
-                               geom and ShaderFile('shaders/'+name+'/geometry.shd', gl.GL_GEOMETRY_SHADER)
+                               ShaderFile(name, gl.GL_FRAGMENT_SHADER),
+                               ShaderFile(name, gl.GL_VERTEX_SHADER),
+                               geom and ShaderFile(name, gl.GL_GEOMETRY_SHADER)
                                )
     else:
       shaders[name] = TesselationShader(
                                name,
-                               ShaderFile('shaders/'+name+'/fragment.shd', gl.GL_FRAGMENT_SHADER),
-                               ShaderFile('shaders/'+name+'/vertex.shd', gl.GL_VERTEX_SHADER),
-                               geom and ShaderFile('shaders/'+name+'/geometry.shd', gl.GL_GEOMETRY_SHADER),
-                               ShaderFile('shaders/'+name+'/tesscontrol.shd', gl.GL_TESS_CONTROL_SHADER),
-                               ShaderFile('shaders/'+name+'/tesseval.shd', gl.GL_TESS_EVALUATION_SHADER)
+                               ShaderFile(name, gl.GL_FRAGMENT_SHADER),
+                               ShaderFile(name, gl.GL_VERTEX_SHADER),
+                               geom and ShaderFile(name, gl.GL_GEOMETRY_SHADER),
+                               ShaderFile(name, gl.GL_TESS_CONTROL_SHADER),
+                               ShaderFile(name, gl.GL_TESS_EVALUATION_SHADER)
                                )
     setUniversalUniforms(shaders[name])
   return shaders[name]
@@ -55,6 +55,10 @@ def setUniform(name,value):
   for i in shaders:
     shaders[i][name] = value
 
+def reload_all():
+  for shader in shaders.values():
+    shader.reload()
+
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(description='Magrathea shader source inspector.')
@@ -62,4 +66,4 @@ if __name__ == "__main__":
       help='source file')
   args = parser.parse_args()
 
-  print ShaderFile(args.file, None).getSource()
+  print getShaderFile(args.file, None).getSource()

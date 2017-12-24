@@ -1,0 +1,45 @@
+uniform mat4 shadowProjection1;
+uniform mat4 shadowProjection2;
+uniform mat4 shadowProjection3;
+uniform mat4 shadow1View;
+uniform mat4 shadow2View;
+uniform mat4 shadow3View;
+uniform sampler2DShadow shadowTexture1;
+uniform sampler2DShadow shadowTexture2;
+uniform sampler2DShadow shadowTexture3;
+
+vec2 getShadowAmount(mat4 shadowProjection, mat4 shadowView, vec4 position, sampler2DShadow shadowTexture)
+{
+  float shadowAmount = 0;
+  vec4 temp = shadowProjection * shadowView * position;
+  vec3 shadowPos = (temp.xyz/temp.w)/2+vec3(0.5);
+  int in_shadow = 0;
+  if ((shadowPos.x < 1.0) &&
+      (shadowPos.x > 0.0) &&
+      (shadowPos.y < 1.0) &&
+      (shadowPos.y > 0.0) &&
+      (shadowPos.z < 1.0) &&
+      (shadowPos.z > -1.0))
+  {
+    in_shadow = 1;
+    for (int i = 0; i<5; i+=1)
+    {
+      for (int j = -3; j<4; j+=1)
+      {
+        shadowAmount += texture(shadowTexture,vec3(shadowPos.xy + pow(i/3.0,0.5)*vec2(cos(j*3.141592/3),sin(j*3.141592/3))*0.001,shadowPos.z-0.002))/35;
+      }
+    }
+  }
+  return vec2(in_shadow,shadowAmount);
+}
+
+float get_total_shadow_amount(vec4 position)
+{
+  vec2 ans = getShadowAmount(shadowProjection1, shadow1View, position, shadowTexture1);
+  if (ans.r > 0.5)
+    return ans.g;
+  ans = getShadowAmount(shadowProjection2, shadow2View, position, shadowTexture2);
+  if (ans.r > 0.5)
+    return ans.g;
+  getShadowAmount(shadowProjection3, shadow3View, position, shadowTexture3).g;
+}

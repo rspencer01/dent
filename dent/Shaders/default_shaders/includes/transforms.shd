@@ -1,0 +1,34 @@
+mat4 rotate_and_translate(vec3 position, vec3 angle) 
+{
+  float cosX = cos(angle.x);
+  float sinX = sin(angle.x);
+  float cosY = cos(angle.y);
+  float sinY = sin(angle.y);
+  float cosZ = cos(angle.z);
+  float sinZ = sin(angle.z);
+
+  mat4 m;
+
+  float m00 = cosY * cosZ + sinX * sinY * sinZ; 
+  float m01 = cosY * sinZ - sinX * sinY * cosZ; 
+  float m02 = cosX * sinY;
+  float m03 = 0.0;
+  
+  float m04 = -cosX * sinZ; 
+  float m05 = cosX * cosZ; 
+  float m06 = sinX;
+  float m07 = 0.0;
+  
+  float m08 = sinX * cosY * sinZ - sinY * cosZ;
+  float m09 = -sinY * sinZ - sinX * cosY * cosZ;
+  float m10 = cosX * cosY;
+  float m11 = 0.0;
+  
+  m[0] = vec4(m00, m01, m02, m03);
+  m[1] = vec4(m04, m05, m06, m07);
+  m[2] = vec4(m08, m09, m10, m11);
+  m[3] = vec4(position.xyz,1);
+
+  return m;
+}
+

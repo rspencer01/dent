@@ -19,7 +19,7 @@ class GenericShader(Shader):
 
   def reload(self):
     for i in self._sources:
-      self._sources[i].load_from_file()
+      self._sources[i].load_from_source()
     gl.glDeleteProgram(self.program)
     self.program = gl.glCreateProgram()
     for program in self._sources:
