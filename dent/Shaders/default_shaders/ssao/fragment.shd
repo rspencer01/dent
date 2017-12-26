@@ -3,18 +3,13 @@ in vec2 pos;
 out vec4 fragColor;
 
 uniform sampler2D colormap;
-uniform sampler2D normalmap;
 uniform sampler2D positionmap;
+uniform sampler2D normalmap;
 
-uniform vec3 sunDirection;
 uniform vec3 CameraPosition;
-uniform vec3 backgroundColor;
-uniform float sunIntensity;
 
-uniform int numLights;
-uniform vec3 lightPositions[100];
-uniform vec3 lightColours[100];
-
+uniform float radius = 0.5;
+uniform int samples = 20;
 
 uniform mat4 View;
 uniform mat4 projection;
@@ -64,11 +59,12 @@ void main()
 
   vec3 fragmentPosition = textureLod(positionmap, pos,0).xyz;
   float ao = 0;
-  for (int i = 0; i<20; ++i)
+  int count = 0;
+  for (int i = 0; i<samples; ++i)
   {
     vec3 diff = rand_mat(pos, normal) *randoms[i]* rand(vec2(i,i+2.));
     if (dot(diff, normalize(normal)) < 0.02) continue;
-    vec3 position = fragmentPosition + diff *0.5;
+    vec3 position = fragmentPosition + diff * radius;
     vec4 screenpos_w = projection * View * vec4(position,1);
     vec2 screenpos = ((screenpos_w.xy/screenpos_w.w)/2+vec2(0.5));
     if ((screenpos.x > 1) || (screenpos.x < 0)) continue;
@@ -76,7 +72,10 @@ void main()
     if (length(textureLod(normalmap,screenpos,0).rgb) < 0.001) continue;
     if (length(position - CameraPosition.xyz) > length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+0.01)
     if (length(position - CameraPosition.xyz) < length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+1.0)
-      ao += 0.1;
+      ao += 1;
+    count += 1;
   }
+  if (count>0)
+    ao /= count;
   fragColor = vec4(1-ao,1-ao,1-ao,1);
 }

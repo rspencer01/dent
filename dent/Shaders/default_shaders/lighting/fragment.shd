@@ -16,33 +16,37 @@ uniform int numLights;
 uniform vec3 lightPositions[100];
 uniform vec3 lightColours[100];
 
+uniform float ambientStrength = 0.1;
+uniform float occlusionStrength = 0.8;
+uniform float specularity = 100;
+uniform float shadowStrength = 1;
+
 #include shadows.shd;
 
 vec3 get_lighting(vec3 position, vec3 norm)
 {
-  float ambient_strength = 0.1;
-  float ambient_occlusion = 1-0.8*(1-texture(ssaomap, pos).r);
-  ambient_strength *= ambient_occlusion;
+  float ambient_occlusion = mix(1, texture(ssaomap, pos).r, occlusionStrength);
+  float ambient = ambientStrength * ambient_occlusion;
 
-  float shadow_amount = get_total_shadow_amount(vec4(position,1));
+  float shadow_amount = shadowStrength * get_total_shadow_amount(vec4(position,1));
 
   vec3 diffuse = vec3(max(0,dot(norm, sunDirection)) * sunIntensity);
 
   vec3 halfway = normalize(
       normalize(sunDirection) + normalize(CameraPosition.xyz - position));
-  vec3 specular = vec3(pow(max(0,dot(halfway, norm)), 100))*sunIntensity;
+  vec3 specular = vec3(pow(max(0,dot(halfway, norm)), specularity))*sunIntensity;
 
   for (int i = 0; i< numLights; ++i)
   {
     vec3 intensity = lightColours[i] / (1+pow(length(position - lightPositions[i]),2));
     vec3 halfway = normalize(
         normalize(lightPositions[i] - position) + normalize(CameraPosition.xyz - position));
-    specular += pow(max(0,dot(halfway, norm)), 100) * intensity;
+    specular += pow(max(0,dot(halfway, norm)), specularity) * intensity;
 
     diffuse += intensity * clamp(dot(norm,normalize(lightPositions[i] - position)),0,1);
   }
 
-  return max(vec3(0),ambient_strength + 0.4*(diffuse+specular)*(1-shadow_amount));
+  return max(vec3(0),ambient + (diffuse+specular)*(1-shadow_amount));
 }
 
 void main()

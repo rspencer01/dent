@@ -5,7 +5,7 @@ from dent.RenderStage import RenderStage
 import dent.Texture
 
 class GaussianBlurStage(RenderStage):
-  def __init__(self, direction=np.array([1., 0.]), *args, **kwargs):
+  def __init__(self, direction=np.array([0.1, 0.0]), *args, **kwargs):
     kwargs['render_func'] = self.render
     super(GaussianBlurStage, self).__init__(*args, **kwargs)
 
