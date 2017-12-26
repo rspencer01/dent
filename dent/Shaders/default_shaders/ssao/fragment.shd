@@ -1,0 +1,82 @@
+#version 410
+in vec2 pos;
+out vec4 fragColor;
+
+uniform sampler2D colormap;
+uniform sampler2D normalmap;
+uniform sampler2D positionmap;
+
+uniform vec3 sunDirection;
+uniform vec3 CameraPosition;
+uniform vec3 backgroundColor;
+uniform float sunIntensity;
+
+uniform int numLights;
+uniform vec3 lightPositions[100];
+uniform vec3 lightColours[100];
+
+
+uniform mat4 View;
+uniform mat4 projection;
+
+vec3 randoms[20] = vec3[](
+                          normalize(1-vec3( 0.159345561312,0.383745699933,0.421453783986)-0.5),
+                          normalize(vec3( 0.534947525961,0.0659814875936,0.0113749878031)-0.5),
+                          normalize(1-vec3( 0.451939972075,0.342468638686,0.597720592889)-0.5),
+                          normalize(1-vec3( 0.45284449396,0.911342135169,0.365480204822)-0.5),
+                          normalize(vec3( 0.51787142209,0.921225819356,0.652970338631)-0.5),
+                          normalize(1-vec3( 0.420936159335,0.239617759305,0.153861507207)-0.5),
+                          normalize(1-vec3( 0.472011171238,0.612103662222,0.243626943956)-0.5),
+                          normalize(1-vec3( 0.39741103919,0.282309032897,0.263079720466)-0.5),
+                          normalize(vec3( 0.863102377371,0.433971285618,0.612211207218)-0.5),
+                          normalize(vec3( 0.669712117012,0.586419128213,0.106984715207)-0.5),
+                          normalize(1-vec3( 0.0362768430308,0.312816279876,0.427088191642)-0.5),
+                          normalize(vec3( 0.73143467186,0.862346882712,0.487952268368)-0.5),
+                          normalize(1-vec3( 0.432942398366,0.225370565217,0.681169920678)-0.5),
+                          normalize(vec3( 0.836075580265,0.503407058056,0.522921745974)-0.5),
+                          normalize(1-vec3( 0.342809909207,0.100888501894,0.0838458897333)-0.5),
+                          normalize(1-vec3( 0.461647312059,0.724858344262,0.90001780986)-0.5),
+                          normalize(1-vec3( 0.46967743203,0.203294247037,0.0332254266437)-0.5),
+                          normalize(vec3( 0.623148543569,0.0525709175892,0.569598603083)-0.5),
+                          normalize(1-vec3( 0.47091619954,0.333630747106,0.40611955111)-0.5),
+                          normalize(1-vec3( 0.364688089126,0.269817751687,0.040609307299)-0.5)
+);
+
+float rand(vec2 co){
+      return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+mat3 rand_mat(vec2 i, vec3 n) {
+  vec3 r2 = normalize(vec3(rand(i*100+3), rand(i*100+4), rand(i*100+5)));
+  vec3 r3 = cross(n, r2);
+  r2 = cross(n, r3);
+  return mat3(n,r2,r3);
+}
+
+void main()
+{
+  vec3 normal = textureLod(normalmap,pos,0).xyz;
+  if (length(normal)<0.001)
+  {
+    fragColor = vec4(1);
+    return;
+  }
+
+  vec3 fragmentPosition = textureLod(positionmap, pos,0).xyz;
+  float ao = 0;
+  for (int i = 0; i<20; ++i)
+  {
+    vec3 diff = rand_mat(pos, normal) *randoms[i]* rand(vec2(i,i+2.));
+    if (dot(diff, normalize(normal)) < 0.02) continue;
+    vec3 position = fragmentPosition + diff *0.5;
+    vec4 screenpos_w = projection * View * vec4(position,1);
+    vec2 screenpos = ((screenpos_w.xy/screenpos_w.w)/2+vec2(0.5));
+    if ((screenpos.x > 1) || (screenpos.x < 0)) continue;
+    if ((screenpos.y > 1) || (screenpos.y < 0)) continue;
+    if (length(textureLod(normalmap,screenpos,0).rgb) < 0.001) continue;
+    if (length(position - CameraPosition.xyz) > length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+0.01)
+    if (length(position - CameraPosition.xyz) < length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+1.0)
+      ao += 0.1;
+  }
+  fragColor = vec4(1-ao,1-ao,1-ao,1);
+}

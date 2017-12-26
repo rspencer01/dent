@@ -3,6 +3,7 @@ in vec2 pos;
 out vec4 fragColor;
 
 uniform sampler2D colormap;
+uniform sampler2D ssaomap;
 uniform sampler2D normalmap;
 uniform sampler2D positionmap;
 
@@ -20,10 +21,12 @@ uniform vec3 lightColours[100];
 vec3 get_lighting(vec3 position, vec3 norm)
 {
   float ambient_strength = 0.1;
+  float ambient_occlusion = 1-0.8*(1-texture(ssaomap, pos).r);
+  ambient_strength *= ambient_occlusion;
 
   float shadow_amount = get_total_shadow_amount(vec4(position,1));
 
-  vec3 diffuse = vec3(max(0.3,dot(norm, sunDirection)) * sunIntensity);
+  vec3 diffuse = vec3(max(0,dot(norm, sunDirection)) * sunIntensity);
 
   vec3 halfway = normalize(
       normalize(sunDirection) + normalize(CameraPosition.xyz - position));
@@ -39,7 +42,7 @@ vec3 get_lighting(vec3 position, vec3 norm)
     diffuse += intensity * clamp(dot(norm,normalize(lightPositions[i] - position)),0,1);
   }
 
-  return max(vec3(0),ambient_strength + (diffuse+specular)*(1-shadow_amount));
+  return max(vec3(0),ambient_strength + 0.4*(diffuse+specular)*(1-shadow_amount));
 }
 
 void main()

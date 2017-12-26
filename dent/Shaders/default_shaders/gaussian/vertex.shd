@@ -1,0 +1,11 @@
+#version 400
+in vec3 position;
+out vec2 pos;
+
+uniform mat3 model;
+
+void main()
+{
+  gl_Position = vec4((model * vec3(position.xy, 1)).xy, position.z, 1.0);
+  pos = position.xy/2+0.5;
+}

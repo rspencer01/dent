@@ -31,7 +31,7 @@ class ShaderFile(object):
   def get_source(self):
     if self.type == INCLUDE:
       if os.path.isfile('shaders/{}'.format(self.name)):
-        return open('shaders/{}/{}'.format(self.name)).read()
+        return open('shaders/{}'.format(self.name)).read()
       if pkg_resources.resource_exists(__name__, 'default_shaders/includes/{}'.format(self.name)):
         return pkg_resources.resource_string(__name__, 'default_shaders/includes/{}'.format(self.name))
       raise IOError("Shader '{}' not found".format(self.name))
@@ -42,7 +42,7 @@ class ShaderFile(object):
         gl.GL_TESS_EVALUATION_SHADER: 'tesseval.shd',
         gl.GL_VERTEX_SHADER: 'vertex.shd',
         }[self.type]
-    if os.path.isfile(self.name):
+    if os.path.isfile(self.name) and self.name[:-4] == '.shd':
       return open(self.name).read()
     if os.path.isfile('shaders/{}/{}'.format(self.name, suffix)):
       return open('shaders/{}/{}'.format(self.name, suffix)).read()
