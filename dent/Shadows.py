@@ -46,11 +46,22 @@ class Shadows(object):
     Shaders.updateUniversalUniform('shadowTexture2',Texture.SHADOWS2_NUM)
     Shaders.updateUniversalUniform('shadowTexture3',Texture.SHADOWS3_NUM)
 
+    self.count = 0
+    self.exponent = 2
+
+
+  def clear(self):
+    for i in xrange(3):
+      self.renderStages[i].load(SHADOW_SIZE, SHADOW_SIZE)
+
 
   def render(self):
     self.shadowCamera.update()
     self.shadowCamera.render()
+    self.count += 1
     for i in xrange(3):
+      if self.count % (self.exponent ** i) != 0:
+        continue
       self.renderStages[i].load(SHADOW_SIZE, SHADOW_SIZE)
       Shaders.setUniform('projection',self.projections[i])
       self.shadowCamera.render('shadow'+str(i+1))
