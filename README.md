@@ -1,6 +1,8 @@
 Dent
 ====
 
+[![Documentation Status](https://readthedocs.org/projects/dent/badge/?version=latest)](http://dent.readthedocs.io/en/latest/?badge=latest)
+
 Dent is a work-in-progress 3D game engine. The idea is to get most of the boring
 stuff out of the way so that you can develop your game quickly, but still allow
 access to lower level objects, so that if you need to do any finicky graphics
