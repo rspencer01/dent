@@ -20,6 +20,8 @@ uniform float ambientStrength = 0.1;
 uniform float occlusionStrength = 0.8;
 uniform float specularity = 100;
 uniform float shadowStrength = 1;
+uniform int raytraceCount = 100;
+uniform float raytraceStrength = 100;
 
 #include shadows.shd;
 
@@ -49,6 +51,22 @@ vec3 get_lighting(vec3 position, vec3 norm)
   return max(vec3(0),ambient + (diffuse+specular)*(1-shadow_amount));
 }
 
+vec3 raytrace(vec3 position)
+{
+  if (raytraceCount == 0)
+    return vec3(0);
+  vec3 dx = (position - CameraPosition.xyz) / raytraceCount;
+  float ds = length(dx);
+  vec3 p = CameraPosition.xyz + dx;
+  vec3 ans = vec3(0);
+  for (int i = 0; i<raytraceCount; ++i)
+  {
+    ans += vec3(raytraceStrength)*ds * (1-get_total_shadow_amount(vec4(p,1)));
+    p += dx;
+  }
+  return ans;
+}
+
 void main()
 {
   fragColor.a = 1;
@@ -60,5 +78,5 @@ void main()
     fragColor.rgb = backgroundColor;
     return;
   }
-  fragColor.rgb = texture(colormap,pos).xyz*get_lighting(position, normal);
+  fragColor.rgb = texture(colormap,pos).xyz*get_lighting(position, normal) + raytrace(position);
 }

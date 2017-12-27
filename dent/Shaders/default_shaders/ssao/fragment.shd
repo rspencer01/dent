@@ -9,6 +9,8 @@ uniform sampler2D normalmap;
 uniform vec3 CameraPosition;
 
 uniform float radius = 0.5;
+uniform float minCutoff = 0.01;
+uniform float maxCutoff = 0.1;
 uniform int samples = 20;
 
 uniform mat4 View;
@@ -70,8 +72,8 @@ void main()
     if ((screenpos.x > 1) || (screenpos.x < 0)) continue;
     if ((screenpos.y > 1) || (screenpos.y < 0)) continue;
     if (length(textureLod(normalmap,screenpos,0).rgb) < 0.001) continue;
-    if (length(position - CameraPosition.xyz) > length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+0.01)
-    if (length(position - CameraPosition.xyz) < length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+1.0)
+    if (length(position - CameraPosition.xyz) > length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+minCutoff)
+    if (length(position - CameraPosition.xyz) < length(textureLod(positionmap,screenpos,0).xyz-CameraPosition.xyz)+maxCutoff)
       ao += 1;
     count += 1;
   }

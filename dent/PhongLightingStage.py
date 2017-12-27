@@ -29,10 +29,14 @@ class PhongLightingStage():
     self.SSAOBlurAmount = 0.001
     self.SSAORadius = 0.5
     self.SSAOSamples = 20
+    self.SSAOMin = 0.001
+    self.SSAOMax = 0.1
     self.ambientStrength = 0.1
     self.occlusionStrength = 0.8
     self.specularity = 100.
     self.shadowStrength = 1.
+    self.raytraceCount = 0
+    self.raytraceStrength = 0.
     self.backgroundColor = np.zeros(4, dtype=float)
     self.enabled = True
 
@@ -43,6 +47,8 @@ class PhongLightingStage():
     self._actual_previous_stage.displayAuxColorTexture.load()
 
     self._ssao_rectangle_object.shader['radius'] = self.SSAORadius
+    self._ssao_rectangle_object.shader['minCutoff'] = self.SSAOMin
+    self._ssao_rectangle_object.shader['maxCutoff'] = self.SSAOMax
     self._ssao_rectangle_object.shader['samples'] = self.SSAOSamples
     self._ssao_rectangle_object.display()
 
@@ -59,6 +65,8 @@ class PhongLightingStage():
     self._lighting_rectangle_object.shader['occlusionStrength'] = self.occlusionStrength
     self._lighting_rectangle_object.shader['specularity'] = self.specularity
     self._lighting_rectangle_object.shader['shadowStrength'] = self.shadowStrength
+    self._lighting_rectangle_object.shader['raytraceCount'] = self.raytraceCount
+    self._lighting_rectangle_object.shader['raytraceStrength'] = self.raytraceStrength
     self._lighting_rectangle_object.display()
 
 
