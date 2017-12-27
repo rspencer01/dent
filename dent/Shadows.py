@@ -11,6 +11,7 @@ SHADOW_SIZE = 2048
 class Shadows(object):
 
   def __init__(self, render_func, lock_object, rng=15):
+    self.rng = rng
 
     self.shadowCamera = Camera.Camera(np.array([0.,300,0]), lockObject=None, lockDistance=2000)
     self.shadowCamera.lockObject = lock_object
@@ -36,12 +37,6 @@ class Shadows(object):
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
 
-    self.projections = []
-    for i in range(3):
-      width = 20 * rng**i
-      self.projections.append(transforms.ortho(-width,width,-width,width, 2000. - 2*width, 2000. + 2*width))
-      Shaders.updateUniversalUniform('shadowProjection'+str(i+1),self.projections[i])
-
     Shaders.updateUniversalUniform('shadowTexture1',Texture.SHADOWS1_NUM)
     Shaders.updateUniversalUniform('shadowTexture2',Texture.SHADOWS2_NUM)
     Shaders.updateUniversalUniform('shadowTexture3',Texture.SHADOWS3_NUM)
@@ -50,12 +45,21 @@ class Shadows(object):
     self.exponent = 2
 
 
+  def updateProjections(self):
+    self.projections = []
+    for i in range(3):
+      width = self.rng**i
+      self.projections.append(transforms.ortho(-width,width,-width,width, 2000. - 2*width, 2000. + 2*width))
+      Shaders.updateUniversalUniform('shadowProjection'+str(i+1),self.projections[i])
+
+
   def clear(self):
     for i in xrange(3):
       self.renderStages[i].load(SHADOW_SIZE, SHADOW_SIZE)
 
 
   def render(self):
+    self.updateProjections()
     self.shadowCamera.update()
     self.shadowCamera.render()
     self.count += 1
