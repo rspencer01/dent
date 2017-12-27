@@ -1,15 +1,23 @@
 Dent
 ====
 
-Dent is a work-in-progress 3D game engine.  The idea is to get most of the boring stuff out of the way so that you can develop your game quickly, but still allow access to lower level objects, so that if you need to do any finicky graphics thing you can.
+Dent is a work-in-progress 3D game engine. The idea is to get most of the boring
+stuff out of the way so that you can develop your game quickly, but still allow
+access to lower level objects, so that if you need to do any finicky graphics
+thing you can.
 
 Dent is developed on Ubuntu, but has been known to work on Windows.
 
+![Crytek's Sponza scene rendered in Dent](https://imgur.com/download/NWZ2bok)
+
 Should I Use Dent?
 ------------------
-If you want to hack together a game in Python, don't want to fiddle around with OpenGL much and  are not too concerned about high levels of polish, I'd say "yes".
+If you want to hack together a game in Python, don't want to fiddle around with
+OpenGL much and are not too concerned about high levels of polish, I'd say
+"yes".
 
-Dent offers smoothing over some of the bumps of getting up and running with OpenGL and python game development.  Some of the features offered are:
+Dent offers smoothing over some of the bumps of getting up and running with
+OpenGL and python game development. Some of the features offered are:
 
  * Shaders:
    * Loading and compiling GLSL from disk
@@ -18,6 +26,7 @@ Dent offers smoothing over some of the bumps of getting up and running with Open
    * Vertex attribute handling
    * Transform feedback shaders
    * Tesselation shaders
+   * Deferred rendering Phong-Blinn shaders builtin
  * Texture abstraction with loading/saving from image files
  * Asset manager
  * 3D asset objects to populate your scenes
@@ -27,7 +36,10 @@ Dent offers smoothing over some of the bumps of getting up and running with Open
 
 However.
 
-Dent is in no way complete.  It is very much a work in progress, with bits being added here and there.  At the moment, because it has very little use, there are quite a few areas that need some improvement.  I'd be very happy to have some pull requests.
+Dent is in no way complete. It is very much a work in progress, with bits being
+added here and there. At the moment, because it has very little use, there are
+quite a few areas that need some improvement. I'd be very happy to have some
+pull requests.
 
 
 How Do I Get Dent?
@@ -41,7 +53,8 @@ $ pip install .
 Minimal Directory Layout
 ------------------------
 
-For a pretty minimal game, check out [pong](https://github.com/rspencer01/pong).  In overview, a typical game would have the following directory structure:
+For a pretty minimal game, check out [pong](https://github.com/rspencer01/pong).
+In overview, a typical game would have the following directory structure:
 
 ~~~
 ├── my-awesome-game.py
@@ -55,7 +68,9 @@ For a pretty minimal game, check out [pong](https://github.com/rspencer01/pong).
     └── ...
 ~~~
 
-The file `my-awesome-game.py` is the entry point to the game (you would run the game as `python my-awesome-game.py`).  It is moderately minimal, and could simply look like this
+The file `my-awesome-game.py` is the entry point to the game (you would run the
+game as `python my-awesome-game.py`). It is moderately minimal, and could simply
+look like this
 
 ~~~ python
 #!/usr/bin/env python
@@ -72,7 +87,9 @@ __scenes__ = set([MainScene])
 __starting_scene__ = MainScene
 ```
 
-The items in `shaders/` are the GLSL shaders you will use to render your game.  Take a look at the pong project above for a very simple one.
+The items in `shaders/` are the GLSL shaders you will use to render your game.
+Dent provides some builtin shaders, but take a look at the pong project above
+for a very simple one.
 
 All of the logic will reside in `MainScene.py`.  For example:
 
@@ -85,9 +102,6 @@ import dent.messaging as messaging
 class MainScene(Scene.Scene):
   def __init__(self):
     super(MainScene, self).__init__()
-    self.renderPipeline.stages.append(
-        RenderStage(render_func=self.display, final_stage=True)
-        )
 
     import dent.Texture
     dent.Texture.getWhiteTexture().load()
@@ -114,4 +128,5 @@ class MainScene(Scene.Scene):
 
 Where Are The Docs?
 -------------------
-Working on it...
+
+[https://dent.readthedocs.io](https://dent.readthedocs.io)
