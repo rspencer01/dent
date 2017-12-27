@@ -1,6 +1,14 @@
 Render Pipelines
 ================
 
+Foreword
+--------
+
+Working with render pipelines can be complicated. As such it is the job of the
+engine to make that complication go away. If you are not interested in the
+behind-the-scenes information about render pipelines, skip to the last section
+to find out why you don't need to know about them.
+
 Overview
 --------
 
@@ -72,8 +80,8 @@ Pipelines in Scenes
 
 A Dent :class:`~dent.Scene.Scene` has one render pipeline to render the scene to
 the display. To help set this up (although you are welcome to do it manually),
-the standard scene comes default with a `renderPipeline` attribute set up as per
-the first example above. The display function for this pipeline is the `display`
+the standard scene comes default with a :code:`renderPipeline` attribute set up as per
+the first example above. The display function for this pipeline is the :code:`display`
 function of the scene. Thus, sufficient bootstrap code is::
 
   class MainScene(Scene):
@@ -82,8 +90,8 @@ function of the scene. Thus, sufficient bootstrap code is::
       # Make objects here
 
     def display(self, **kwargs):
-      # Call display on all the objects
+      for object in self.objects:
+        object.display()
 
 For a deferred rendering scene, extend :class:`~dent.Scene.DeferredRenderScene`.
-Again, the display function is `display`. This will look for a shader called
-`lighting` which will be used as the final shader.
+Again, the display function is :code:`display`.

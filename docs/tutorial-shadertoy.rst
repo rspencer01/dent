@@ -7,19 +7,32 @@ programs. It is well worth checking out what you can do with just a fragment sha
 Let us write a fragment shader viewer in Dent. We'll go about it in four short
 stages.
 
+Stage 0: Planning
+-----------------
+
+Before diving in, lets plan what we need.
+
+We want to just run a fragment shader. But to render that we need some geometry
+on which to execute it. We can just use a rectangle that fills up the whole
+screen (Dent has us covered here so we don't have to mess with any vertex data
+etc.).
+
+We'll have a vertex shader that is as simple as can be, and then we can do magic
+in the fragment shader.
+
 Stage 1: Getting a Game Running
 -------------------------------
 
-We can use the dent script `dent-init` to set up our game. Simply run::
+We can use the dent script :code:`dent-init` to set up our game. Simply run::
 
   $ dent-init tutorial
 
 in order to make a minimal game tree.
 
-Lets take a look at what's been added. We now see a directory called :tutorial:
+Lets take a look at what's been done. We now see a directory called :code:`tutorial`
 under which all our code and assets etc will go.
 
-The entrypoint to our game (ie the file we'll run) is called ``tutorial``. We
+The entrypoint to our game (ie the file we'll run) is called :code:`tutorial`. We
 don't need to do any setup before the game runs, so this file just has a single
 import statement. Dent is unusual (underdeveloped) in that the game begins when
 you import that module. This is earmarked to be changed in the near future.
@@ -34,7 +47,7 @@ Every game needs a scene, and we have a dummy one, ``scenes/MainScene.py``::
 The file ``scenes/__init__.py`` does some python and dent housekeeping. It is
 unimportant at the moment
 
-Running the `tutorial` file should present you with a blank scene. Mmmm.
+Running the :code:`tutorial` file should present you with a blank scene. Mmmm.
 Progress!
 
 Stage 2: Writing a Shader
@@ -109,7 +122,7 @@ to render. Since we put our earlier shader in ``shaders/main``, this will be the
 string "main".
 
 
-Hence the change to the scene is quite minimal. We also define a `display`
+Hence the change to the scene is quite minimal. We also define a :code:`display`
 function that is called to refresh the screen::
 
   from dent.RectangleObjects import RectangleObject

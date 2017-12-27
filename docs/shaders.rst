@@ -7,7 +7,7 @@ are written in OpenGL Shader Language, with a small modification.
 
 This guide assumes some knowledge of OpenGL shaders and pipelines. If you are
 new to all this, it is suggested to copy one of the shaders from an existing
-project and tweak it to your needs.
+project and tweak it to your needs, or only use the builtin shaders.
 
 ======================== =================== ==============================
  Shader type             Filename            Required
@@ -46,7 +46,7 @@ The corresponding fragment shader might be::
     fragColor = texture(colormap, vec2(pos.x, 1-pos.y));
   }
 
-Note the output of the fragment shader is a `vec4`.  You may output up to three vectors for deffered rendering (see :doc:`pipelines`).
+Note the output of the fragment shader is a `vec4`.  You may output up to three vectors for defered rendering (see :doc:`render-pipelines`).
 
 Shaders are stored in the game tree under the folder ``shaders``::
 
@@ -73,7 +73,10 @@ A shader object is created easily.  For example to create a standard vertex-frag
 
 This corresponds to the ``shaders/image/*`` shader above.
 
-The main function of shaders is the `draw` method.  This loads the shader, sets the relevant uniforms and executes a `glDraw*` command.  The precice command depends on the type of shader (generic, instanced, or feedback).  Thus an object in the scene typically has a `display` function of the form::
+The main function of shaders is the :code:`draw` method. This loads the shader, sets
+the relevant uniforms and executes a :code:`glDraw*` command. The precice command
+depends on the type of shader (generic, instanced, or feedback). Thus an object
+in the scene typically has a :code:`display` function of the form::
 
   def display(self):
     self.shader['model'] = self.model
