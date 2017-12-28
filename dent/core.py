@@ -151,8 +151,6 @@ def keyboard_up_handler(key):
 def mouse_handler(button, state, x, y):
   if button in (3,4):
     scene.camera.lockDistance += button - 3.5
-  if not hold_mouse:
-    glut.glutWarpPointer(windowWidth/2,windowHeight/2)
 
 def glut_keyboard_handler(key, x, y):
   messaging.add_message(messaging.Message('keyboard',(key)))
@@ -204,6 +202,7 @@ glut.glutDisplayFunc(display)
 if args.args.replay is None:
   glut.glutMouseFunc(glut_mouse_handler)
   glut.glutPassiveMotionFunc(glut_mouse_motion_handler)
+  glut.glutMotionFunc(glut_mouse_motion_handler)
   glut.glutKeyboardFunc(glut_keyboard_handler)
   glut.glutKeyboardUpFunc(glut_keyboard_up_handler)
 glut.glutSetCursor(glut.GLUT_CURSOR_NONE)
