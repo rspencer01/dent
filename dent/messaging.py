@@ -1,4 +1,5 @@
 import time
+import logging
 import cPickle as pickle
 from collections import deque
 import copy
@@ -29,6 +30,7 @@ def add_handler(message_type, handler):
   if message_type not in handlers:
     handlers[message_type] = []
   handlers[message_type].append(handler)
+  logging.debug("Added message handler {} for {}".format(handler, message_type))
 
 def process_messages():
   global messages, handled_messages

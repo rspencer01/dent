@@ -12,7 +12,6 @@ import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 from PIL import Image
-import messaging
 import random
 
 import args
@@ -26,6 +25,7 @@ elif args.args.verbose == 1:
 else:
   logging.basicConfig(format=LOGGING_FORMAT, level=logging.WARN)
 
+import messaging
 import configuration
 
 Re = 6.360e6

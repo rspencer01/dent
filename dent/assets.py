@@ -21,13 +21,13 @@ def getType(assetID):
 def loadFromFile(filename):
   try:
     obj = np.load(filename)
-    logging.info("Loaded object as numpy array")
+    logging.debug("Loaded object as numpy array")
     return obj
   except IOError as e:
     pass
   try:
     obj = pickle.load(open(filename, 'rb'))
-    logging.info("Loaded object as python pickle")
+    logging.debug("Loaded object as python pickle")
     return obj
   finally:
     pass
@@ -35,10 +35,10 @@ def loadFromFile(filename):
 
 def saveToFile(obj, filename, assetName='<unknown>'):
   if type(obj) in [np.ndarray]:
-    logging.info("Saving object as numpy array")
+    logging.debug("Saving object as numpy array")
     np.save(open(filename, 'wb'), obj)
   else:
-    logging.info("Saving object as python pickle")
+    logging.debug("Saving object as python pickle")
     pickle.dump(obj, open(filename, 'wb'))
   with open(filename+'.meta', 'w') as f:
     f.write("{}\n".format(assetName))
