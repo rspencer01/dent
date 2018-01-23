@@ -64,7 +64,7 @@ def display():
   gl.glEndQuery(gl.GL_PRIMITIVES_GENERATED)
   triangleCount = gl.glGetQueryObjectiv(trianglesQuery, gl.GL_QUERY_RESULT)
 
-  glut.glutSetWindowTitle("{:.2f} ({:.0f}ms) {:.6f} {:,} triangles".format(1./frametime,frametime*1000, time.time()-lastframe, triangleCount))
+  glut.glutSetWindowTitle("Dent {:.2f} ({:.0f}ms) {:.6f} {:,} triangles".format(1./frametime,frametime*1000, time.time()-lastframe, triangleCount))
   glut.glutPostRedisplay()
 
 def takeScreenshot():
@@ -185,7 +185,7 @@ glut.glutInitContextFlags(glut.GLUT_FORWARD_COMPATIBLE);
 glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE);
 glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
 glut.glutInitWindowSize(512,512);
-glut.glutCreateWindow("PM4")
+glut.glutCreateWindow("Dent")
 glut.glutSetKeyRepeat(glut.GLUT_KEY_REPEAT_OFF)
 glut.glutIgnoreKeyRepeat(1)
 logging.info("Obtained OpenGL "+gl.glGetString(gl.GL_VERSION))
