@@ -26,6 +26,8 @@ class Animation(object):
       self._animation = pyassimp.load(self._configuration['animation_filename']).animations[self._configuration['animation_index']]
     else:
       self._animation = False
+    if 'invert' not in self._configuration:
+      self._configuration['invert'] = False
     if 'animation_fps' not in self._configuration:
       self._configuration['animation_fps'] = self._animation.tickspersecond
     if 'animation_frames' not in self._configuration:
@@ -42,6 +44,8 @@ class Animation(object):
   def get_bone_transforms(self, time, with_root_offset=True):
     time = int(time * self._configuration['animation_fps']) \
             % (self._configuration['animation_frames'])
+    if self._configuration['invert']:
+      time = self._configuration['animation_frames'] - time - 1
 
     bones = np.zeros((60,4,4), dtype=np.float32)
     for i in xrange(60):
@@ -80,6 +84,8 @@ class Animation(object):
   def get_root_offset(self, time):
     time = int(time * self._configuration['animation_fps']) \
             % (self._configuration['animation_frames'])
+    if self._configuration['invert']:
+      time = self._configuration['animation_frames'] - time - 1
 
     if self._animation:
       positionkeys = self.get_channel('Hips').positionkeys
@@ -92,6 +98,8 @@ class Animation(object):
     """Returns the position of the animation in the last frame."""
     if self._animation:
       positionkeys = self.get_channel('Hips').positionkeys
+      if self._configuration['invert']:
+        return -positionkeys[0].value
       return positionkeys[-1].value
     else:
       return np.array(self._configuration['end_position'])
