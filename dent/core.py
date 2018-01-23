@@ -120,7 +120,8 @@ def keyboard_handler(key):
   if key=='\033':
     if args.args.replay is None:
       messaging.save_messages()
-    gl.glDeleteQueries(1, [trianglesQuery])
+    if trianglesQuery:
+      gl.glDeleteQueries(1, [trianglesQuery])
     logging.info("Average frame time {:.4f} (+-{:.4f})".format(sum(frametimes)/len(frametimes), np.std(frametimes)))
     logging.warn("Exiting...")
     sys.exit(0)
@@ -177,7 +178,7 @@ def userCommand():
       print "Exception:",e
     command = raw_input('>>> ')
 
-glut.glutInit()
+glut.glutInit(sys.argv)
 logging.info("Requesting OpenGL 4.2")
 glut.glutInitContextVersion(4, 2);
 glut.glutInitContextFlags(glut.GLUT_FORWARD_COMPATIBLE);
