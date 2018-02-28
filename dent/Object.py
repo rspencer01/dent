@@ -1,8 +1,8 @@
 import OpenGL.GL as gl
 import os
+import dent.assets
 import numpy as np
 import pyassimp
-import pyassimp.material
 import Texture
 import TextureManager
 import Shaders
@@ -11,6 +11,7 @@ import logging
 import taskQueue
 import threading
 import ActionController
+from dent.Mesh import Mesh
 from collections import namedtuple
 import Animation
 
@@ -23,31 +24,6 @@ def getOptionNumber(meshOptions):
     if v:
       ans += 2 ** i
   return ans
-
-def get_node_parent(scene, name):
-  def dfs(node,parent):
-    if node.name == name:
-      return parent
-    for i in node.children:
-      a = dfs(i, node)
-      if a: return a
-    return None
-  return dfs(scene.rootnode, '')
-
-def getTextureFile(material, textureType, directory=None):
-  if textureType == pyassimp.material.aiTextureType_DIFFUSE:
-    if os.path.exists(directory+'/{}.diff.png'.format(material.properties[('name', 0)])):
-      return '{}.diff.png'.format(material.properties[('name', 0)])
-  elif textureType == pyassimp.material.aiTextureType_NORMALS:
-    if os.path.exists(directory+'/{}.norm.png'.format(material.properties[('name', 0)])):
-      return '{}.norm.png'.format(material.properties[('name', 0)])
-  elif textureType == pyassimp.material.aiTextureType_SPECULAR:
-    if os.path.exists(directory+'/{}.spec.png'.format(material.properties[('name', 0)])):
-      return '{}.spec.png'.format(material.properties[('name', 0)])
-  if ('file', textureType) in material.properties:
-    if os.path.exists(directory+'/{}'.format(material.properties[('file', textureType)])):
-      return material.properties[('file', textureType)]
-  logging.debug("Texture {}/{} not found".format(directory,material.properties[('name', 0)]))
 
 shader             = Shaders.getShader('general-noninstanced')
 shader['colormap'] = Texture.COLORMAP_NUM
@@ -117,126 +93,92 @@ class Object(object):
 
   def loadFromFile(self):
     logging.info("Loading object {} from {}".format(self.name, self.filename))
-    # Some of these are for static only and must be removed when doing bones.
-    self.scene = pyassimp.load(self.filename,
-        processing=pyassimp.postprocess.aiProcess_CalcTangentSpace|
-                   pyassimp.postprocess.aiProcess_Triangulate|
-                   pyassimp.postprocess.aiProcess_JoinIdenticalVertices|
-                   pyassimp.postprocess.aiProcess_LimitBoneWeights |
-                   pyassimp.postprocess.aiProcess_GenNormals)
+    full_meshes = []
+    def get_mesh_info():
+      # Some of these are for static only and must be removed when doing bones.
+      # This call is exceptionally slow.  Must we move to c?
+      self.scene = pyassimp.load(self.filename,
+          processing=pyassimp.postprocess.aiProcess_CalcTangentSpace|
+                     pyassimp.postprocess.aiProcess_Triangulate|
+                     pyassimp.postprocess.aiProcess_JoinIdenticalVertices|
+                     pyassimp.postprocess.aiProcess_LimitBoneWeights |
+                     pyassimp.postprocess.aiProcess_GenNormals)
+      logging.info("Postprocessing {}".format(self.name))
 
-    def addNode(node, trans, depth = 0):
-      newtrans = trans.dot(node.transformation)
-      for msh in node.meshes:
-        self.addMesh(node.name, msh, newtrans)
-      for nod in node.children:
-        addNode(nod, newtrans, depth+1)
+      mesh_info = []
+      def addNode(node, trans, node_info):
+        newtrans = trans.dot(node.transformation)
+        for msh in node.meshes:
+          full_meshes.append(("{}-{}-{}".format(self.name,
+                                         len(node_info),
+                                         node.name),
+                       msh, newtrans))
+          node_info.append(("{}-{}-{}".format(self.name,
+                                         len(node_info),
+                                         node.name),
+                       None, newtrans))
+        for nod in node.children:
+          addNode(nod, newtrans, mesh_info)
 
-    t = np.eye(4)
-    addNode(self.scene.rootnode, t)
+      t = np.eye(4)
+      addNode(self.scene.rootnode, t,mesh_info)
+      return mesh_info
+
+    self.bones = dent.assets.getAsset(self.name+'-bones', lambda: {})
+
+    mesh_info = dent.assets.getAsset(self.name+'-mesh_info', get_mesh_info)
+    if full_meshes:
+      mesh_info = full_meshes
+    for mesh in mesh_info:
+      self.addMesh(*mesh)
+
+    self.bones = dent.assets.getAsset(self.name+'-bones', lambda: self.bones, forceReload=True)
 
 
-  def addMesh(self, name, mesh, trans):
-    logging.debug("Loading mesh {}".format(mesh.__repr__()))
+
+  def addMesh(self, name, assimp_mesh, trans):
+    logging.info("Loading mesh {}".format(name))
     options = MeshOptions(False, False)
-    data = np.zeros(len(mesh.vertices),
-                      dtype=[("position" , np.float32,3),
-                             ("normal"   , np.float32,3),
-                             ("textcoord", np.float32,2),
-                             ("tangent"  , np.float32,3),
-                             ("bitangent", np.float32,3),
-                             ("bone_ids", np.int32,4),
-                             ("weights", np.float32,4)])
-    # Get the vertex positions and add a w=1 component
-    vertPos = mesh.vertices
-    add = np.ones((vertPos.shape[0], 1),dtype=np.float32)
-    vertPos = np.append(vertPos, add, axis=1)
-    # Get the vertex normals and add a w=1 component
-    vertNorm = mesh.normals
-    add = np.zeros((vertNorm.shape[0],1),dtype=np.float32)
-    vertNorm = np.append(vertNorm, add, axis=1)
+    def load_mesh_from_assimp():
+      mesh = Mesh(name, trans, self.offset)
+      mesh.load_from_assimp(assimp_mesh, self.directory, self.scene, self)
+      return mesh
 
-    vertTangents = mesh.tangents
-    vertBitangents = mesh.bitangents
-
-    tinvtrans = np.linalg.inv(trans).transpose()
-    # Transform all the vertex positions.
-    for i in xrange(len(vertPos)):
-      vertPos[i] = trans.dot(vertPos[i])
-      vertNorm[i] = tinvtrans.dot(vertNorm[i])
-    # Splice correctly, killing last components
-    vertPos = vertPos[:,0:3] - self.offset
-    vertNorm = vertNorm[:,0:3]
-
-    vertUV = mesh.texturecoords[0][:, [0,1]]
-    vertUV[:, 1] = 1 - vertUV[:, 1]
+    mesh = dent.assets.getAsset(name, load_mesh_from_assimp)
 
     # Update the bounding box
     self.bounding_box_min = np.min([self.bounding_box_min,
-                                    np.min(vertPos, 0)],0)
+                                    np.min(mesh.data["position"], 0)],0)
     self.bounding_box_max = np.max([self.bounding_box_min,
-                                    np.max(vertPos, 0)],0)
-
-    # Set the data
-    data["position"] = vertPos
-    data["normal"] = vertNorm
-    data["textcoord"] = vertUV
-    data["tangent"] = vertTangents
-    data["bone_ids"] = 59
-    data["bitangent"] = vertBitangents
-
-    # Get the indices
-    indices = mesh.faces.reshape((-1,))
+                                    np.max(mesh.data["position"], 0)],0)
 
     # Load the texture
-    if getTextureFile(mesh.material, pyassimp.material.aiTextureType_DIFFUSE, self.directory):
-      texture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_DIFFUSE, self.directory), Texture.COLORMAP)
+    if mesh.diffuse_texture_file:
+      texture = TextureManager.get_texture(self.directory+'/'+mesh.diffuse_texture_file, Texture.COLORMAP)
     else:
       texture = Texture.getWhiteTexture();
 
-    if getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory):
-      normalTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_NORMALS, self.directory), Texture.NORMALMAP)
-      options = options._replace(has_bumpmap=True)
-    elif getTextureFile(mesh.material, pyassimp.material.aiTextureType_HEIGHT, self.directory):
-      normalTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_HEIGHT, self.directory), Texture.NORMALMAP)
+    if mesh.normal_texture_file:
+      normalTexture = TextureManager.get_texture(self.directory+'/'+mesh.normal_texture_file, Texture.NORMALMAP)
       options = options._replace(has_bumpmap=True)
     else:
       normalTexture = None
       options = options._replace(has_bumpmap=False)
-
-    if getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory):
-      logging.info("Getting texture from {}".format(getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory)))
-      specTexture = TextureManager.get_texture(self.directory+'/'+getTextureFile(mesh.material, pyassimp.material.aiTextureType_SPECULAR, self.directory), Texture.SPECULARMAP)
+    if mesh.specular_texture_file:
+      specTexture = TextureManager.get_texture(self.directory+'/'+mesh.specular_texture_file, Texture.SPECULARMAP)
     else:
       specTexture = Texture.getBlackTexture()
       specTexture.textureType = Texture.SPECULARMAP
 
     # Do skinning
     if self.will_animate:
-      if len(mesh.bones) > 0:
+      if len(self.bones) > 0:
         options = options._replace(has_bones=True)
-        data["weights"] = 0
-        for bone in mesh.bones:
-          n = len(self.bones)
-          if bone.name not in self.bones:
-            self.bones[bone.name] = (n, get_node_parent(self.scene, bone.name).name, bone.offsetmatrix)
-            nn =n
-          else:
-            nn = self.bones[bone.name][0]
-          for relationship in bone.weights:
-            bone_vec_number = 0
-            for i in xrange(3):
-              if data["weights"][relationship.vertexid][bone_vec_number] > 0:
-                bone_vec_number += 1
-              else:
-                break
-            data["weights"][relationship.vertexid][bone_vec_number] = relationship.weight
-            data["bone_ids"][relationship.vertexid][bone_vec_number] = nn
-    # Add the textures and the mesh data
-    self.textures.append(texture)
-    self.meshes.append(MeshDatum(name, data, indices, texture, normalTexture, specTexture, options))
 
-    taskQueue.addToMainThreadQueue(self.uploadMesh, (data, indices, mesh))
+    self.textures.append(texture)
+    self.meshes.append(MeshDatum(name, mesh.data, mesh.indices, texture, normalTexture, specTexture, options))
+
+    taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh.data, mesh.indices, mesh))
 
 
   def uploadMesh(self, data, indices, mesh):
