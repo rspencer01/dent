@@ -1,11 +1,11 @@
-from dent.Camera import Camera
+from dent.Camera import MouseControlledCamera
 from dent.RenderPipeline import RenderPipeline
 from dent.RenderStage import RenderStage
 from dent.PhongLightingStage import PhongLightingStage
 
 class Scene(object):
   def __init__(self):
-    self.camera = Camera()
+    self.camera = MouseControlledCamera()
     self.renderPipeline = RenderPipeline(
         [RenderStage(render_func=self.display, final_stage=True)]
         )
@@ -19,7 +19,7 @@ class Scene(object):
 
 class DeferredRenderScene(Scene):
   def __init__(self):
-    self.camera = Camera()
+    self.camera = MouseControlledCamera()
     self.renderPipeline = RenderPipeline(
         [
           RenderStage(render_func=self.display),

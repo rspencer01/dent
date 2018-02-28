@@ -81,21 +81,6 @@ def glut_timer_handler(fps):
   messaging.add_message(messaging.Message('timer', (fps,)))
 
 def timer_handler(fps):
-  if 'w' in keys:
-    scene.camera.move(scene.cameraSpeed * 1.0/fps)
-  if 's' in keys:
-    scene.camera.move(scene.cameraSpeed * -1.0/fps)
-  if 'e' in keys:
-    scene.camera.rotUpDown(1.5/fps)
-  if 'q' in keys:
-    scene.camera.rotUpDown(-1.5/fps)
-  if 'a' in keys:
-    scene.camera.rotLeftRight(-1.5/fps)
-  if 'd' in keys:
-    scene.camera.rotLeftRight(1.5/fps)
-  if 'h' in keys:
-    scene.camera.position = scene.camera.position * 0.98
-
   taskQueue.doNextTask()
 
   glut.glutTimerFunc(1000/fps, glut_timer_handler, fps)
@@ -104,17 +89,16 @@ def mouse_motion_handler(x, y):
   if x != windowWidth/2 or \
      y != windowHeight/2:
     if hold_mouse:
-      scene.camera.rotUpDown(0.01*(y-windowHeight/2.))
-      scene.camera.rotLeftRight(0.01*(x-windowWidth/2.))
       glut.glutWarpPointer(windowWidth/2,windowHeight/2)
 
-def reshape(width,height):
+def glut_reshape_handler(width,height):
   global windowHeight,windowWidth
   windowHeight = height
   windowWidth = width
   for scene in scenes:
     for stage in scene.renderPipeline.stages:
       stage.reshape(width, height)
+  messaging.add_message(messaging.Message('window_reshape',(width, height)))
 
 keys = set()
 def keyboard_handler(key):
@@ -200,7 +184,7 @@ gl.glPolygonMode(gl.GL_FRONT_AND_BACK,gl.GL_FILL);
 gl.glEnable(gl.GL_BLEND)
 gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
 gl.glCullFace(gl.GL_BACK)
-glut.glutReshapeFunc(reshape)
+glut.glutReshapeFunc(glut_reshape_handler)
 glut.glutDisplayFunc(display)
 if args.args.replay is None:
   glut.glutMouseFunc(glut_mouse_handler)
