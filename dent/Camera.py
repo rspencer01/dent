@@ -1,6 +1,7 @@
 import numpy as np
 import transforms
 import messaging
+import dent.keyboard
 from Shaders import *
 
 class Camera(object):
@@ -95,29 +96,27 @@ class MouseControlledCamera(Camera):
           *args,
           **kwargs):
     super(MouseControlledCamera, self).__init__(*args, **kwargs)
-    messaging.add_handler('keyboard', self.keyboard_handler)
-    messaging.add_handler('keyboard_up', self.keyboard_up_handler)
     messaging.add_handler('timer', self.timer_handler)
     messaging.add_handler('mouse_motion', self.mouse_motion_handler)
     messaging.add_handler('window_reshape', self.reshape_handler)
-    self.keys = set()
     self.speed = 0
     self.windowsize = (0,0)
 
+
   def timer_handler(self, fps):
-    if 'w' in self.keys:
+    if dent.keyboard.is_key_down('w'):
       self.move(self.speed * 1.0/fps)
-    if 's' in self.keys:
+    if dent.keyboard.is_key_down('s'):
       self.move(self.speed * -1.0/fps)
-    if 'e' in self.keys:
+    if dent.keyboard.is_key_down('e'):
       self.rotUpDown(1.5/fps)
-    if 'q' in self.keys:
+    if dent.keyboard.is_key_down('q'):
       self.rotUpDown(-1.5/fps)
-    if 'a' in self.keys:
+    if dent.keyboard.is_key_down('a'):
       self.rotLeftRight(-1.5/fps)
-    if 'd' in self.keys:
+    if dent.keyboard.is_key_down('d'):
       self.rotLeftRight(1.5/fps)
-    if 'h' in self.keys:
+    if dent.keyboard.is_key_down('h'):
       self.position = self.position * 0.98
 
 
@@ -126,15 +125,6 @@ class MouseControlledCamera(Camera):
        y != self.windowsize[1]/2:
       self.rotUpDown(0.01*(y-self.windowsize[1]/2.))
       self.rotLeftRight(0.01*(x-self.windowsize[0]/2.))
-
-
-  def keyboard_up_handler(self, key):
-    if key in self.keys:
-      self.keys.remove(key)
-
-
-  def keyboard_handler(self, key):
-    self.keys.add(key)
 
 
   def reshape_handler(self, width, height):
