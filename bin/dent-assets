@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import dent.assets
+import os
+
+print "{: <40.40} {: <16} {: >9} {}".format("Name", "ID", "Size (kb)", "Type")
+for asset in dent.assets.getAllAssetIds():
+  print "{: <40.40} {: <16} {: >9,} {}".format(
+      dent.assets.getAssetName(asset),
+      asset,
+      os.path.getsize(dent.assets.getFilename(asset))/1024,
+      dent.assets.get_asset_type(asset)
+      )

@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='dent',
-    version='0.0.8',
+    version='0.0.9',
     description='A 3D game engine',
     author='Robert Spencer',
     license='MIT',
