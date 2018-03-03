@@ -9,12 +9,15 @@ class Scene(object):
     self.renderPipeline = RenderPipeline(
         [RenderStage(render_func=self.display, final_stage=True)]
         )
+    self._objects = []
 
   def render(self, windowWidth, windowHeight):
     self.renderPipeline.run(windowWidth, windowHeight)
 
   def display(self, **kwargs):
-    pass
+    self.camera.render()
+    for obj in self._objects:
+      obj.display()
 
 
 class DeferredRenderScene(Scene):
