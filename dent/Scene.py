@@ -21,12 +21,12 @@ class Scene(object):
 
 
 class DeferredRenderScene(Scene):
-  def __init__(self):
+  def __init__(self, phong_final=True):
     self.camera = MouseControlledCamera()
     self.renderPipeline = RenderPipeline(
         [
           RenderStage(render_func=self.display),
-          PhongLightingStage(final_stage=True)
+          PhongLightingStage(final_stage=phong_final)
         ]
       )
     self.lighting_stage = self.renderPipeline.stages[-1]
