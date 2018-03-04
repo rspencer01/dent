@@ -1,13 +1,28 @@
 #!/usr/bin/env python
 
+import argparse
 import dent.assets
 import os
+import shutil
 
-print "{: <40.40} {: <16} {: >9} {}".format("Name", "ID", "Size (kb)", "Type")
-for asset in dent.assets.getAllAssetIds():
-  print "{: <40.40} {: <16} {: >9,} {}".format(
-      dent.assets.getAssetName(asset),
-      asset,
-      os.path.getsize(dent.assets.getFilename(asset))/1024,
-      dent.assets.get_asset_type(asset)
-      )
+parser = argparse.ArgumentParser()
+
+parser.add_argument('action',
+    choices=['list', 'clean'],
+    default='list',
+    nargs='?',
+    const='list')
+
+args = parser.parse_args()
+
+if args.action == 'list':
+  print "{: <40.40} {: <16} {: >9} {}".format("Name", "ID", "Size (kb)", "Type")
+  for asset in dent.assets.getAllAssetIds():
+    print "{: <40.40} {: <16} {: >9,} {}".format(
+        dent.assets.getAssetName(asset),
+        asset,
+        os.path.getsize(dent.assets.getFilename(asset))/1024,
+        dent.assets.get_asset_type(asset)
+        )
+elif args.action == 'clean':
+  shutil.rmtree('./_assets')
