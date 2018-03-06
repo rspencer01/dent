@@ -16,7 +16,7 @@ from collections import namedtuple
 import Animation
 
 MeshOptions = namedtuple("MeshOptions", ('has_bumpmap', 'has_bones'))
-MeshDatum = namedtuple("MeshDatum", ('name', 'data', 'indices', 'colormap', 'normalmap', 'specularmap', 'options'))
+MeshDatum = namedtuple("MeshDatum", ('name', 'data', 'indices', 'colormap', 'normalmap', 'specularmap', 'options','mesh'))
 
 def getOptionNumber(meshOptions):
   ans = 0
@@ -176,7 +176,7 @@ class Object(object):
         options = options._replace(has_bones=True)
 
     self.textures.append(texture)
-    self.meshes.append(MeshDatum(name, mesh.data, mesh.indices, texture, normalTexture, specTexture, options))
+    self.meshes.append(MeshDatum(name, mesh.data, mesh.indices, texture, normalTexture, specTexture, options, mesh))
 
     taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh.data, mesh.indices, mesh))
 
@@ -215,6 +215,7 @@ class Object(object):
       # Load textures
       meshdatum.colormap.load()
       meshdatum.specularmap.load()
+      meshdatum.mesh.set_material_uniforms()
       if meshdatum.options.has_bumpmap:
         meshdatum.normalmap.load()
       shader.draw(gl.GL_TRIANGLES, renderID)

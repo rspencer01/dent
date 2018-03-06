@@ -63,6 +63,7 @@ class Mesh(object):
     self.diffuse_texture_file = None
     self.normal_texture_file = None
     self.specular_texture_file = None
+    self.material_diffuse_color = None
 
 
   def load_from_assimp(self, assimp_mesh, directory, scene, parent):
@@ -113,6 +114,7 @@ class Mesh(object):
     self.normal_texture_file = get_texture_filename(assimp_mesh.material, pyassimp.material.aiTextureType_NORMALS, directory) or \
                                get_texture_filename(assimp_mesh.material, pyassimp.material.aiTextureType_HEIGHT, directory)
     self.specular_texture_file = get_texture_filename(assimp_mesh.material, pyassimp.material.aiTextureType_SPECULAR, directory)
+    self.material_diffuse_color = np.array(assimp_mesh.material.properties[('diffuse', 0)])
 
     if len(assimp_mesh.bones) > 0:
       for bone in assimp_mesh.bones:
@@ -131,3 +133,8 @@ class Mesh(object):
               break
           self.data["weights"][relationship.vertexid][bone_vec_number] = relationship.weight
           self.data["bone_ids"][relationship.vertexid][bone_vec_number] = nn
+
+
+  def set_material_uniforms(self, shader)::
+    shader['diffuse_tint'] = self.material_diffuse_color
+
