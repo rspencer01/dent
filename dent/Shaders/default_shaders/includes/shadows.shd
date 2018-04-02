@@ -41,5 +41,5 @@ float get_total_shadow_amount(vec4 position)
   ans = getShadowAmount(shadowProjection2, shadow2View, position, shadowTexture2);
   if (ans.r > 0.5)
     return ans.g;
-  getShadowAmount(shadowProjection3, shadow3View, position, shadowTexture3).g;
+  return getShadowAmount(shadowProjection3, shadow3View, position, shadowTexture3).g;
 }

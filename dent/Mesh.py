@@ -135,6 +135,6 @@ class Mesh(object):
           self.data["bone_ids"][relationship.vertexid][bone_vec_number] = nn
 
 
-  def set_material_uniforms(self, shader)::
+  def set_material_uniforms(self, shader):
     shader['diffuse_tint'] = self.material_diffuse_color
 
