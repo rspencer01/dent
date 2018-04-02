@@ -23,6 +23,15 @@ def get_asset_type(assetID):
   return 'pickle'
 
 
+def get_asset_metadata(assetID):
+  if assetID+'.meta' not in os.listdir('_assets'):
+    raise Exception("Asset not present")
+  lines = map(lambda x: x.strip(), open('_assets/'+assetID+'.meta').readlines())
+  return {
+      "name": lines[0],
+      }
+
+
 def loadFromFile(filename):
   try:
     obj = np.load(filename)
@@ -75,6 +84,4 @@ def getAllAssetIds():
 
 
 def getAssetName(assetID):
-  if assetID+'.meta' not in os.listdir('_assets'):
-    return '-'
-  return open('_assets/'+assetID+'.meta').readlines()[0].strip()
+  return get_asset_metadata(assetID)['name']
