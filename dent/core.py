@@ -162,7 +162,7 @@ if args.args.replay is None:
   glut.glutKeyboardUpFunc(glut_keyboard_up_handler)
 
 import Texture
-Texture.init()
+Texture.initialise()
 
 import scenes as game_scenes
 

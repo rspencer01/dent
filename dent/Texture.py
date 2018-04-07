@@ -1,12 +1,12 @@
+from PIL import Image
 import OpenGL.GL as gl
+import dent.args
+import dent.assets
+import dent.taskQueue
+import logging
 import numpy as np
 import scipy.ndimage
-from PIL import Image
-import logging
 import sys
-import taskQueue
-import assets
-import args
 
 HEIGHTMAP = gl.GL_TEXTURE0
 HEIGHTMAP_NUM = 0
@@ -52,7 +52,7 @@ SSAOMAP = gl.GL_TEXTURE20
 SSAOMAP_NUM = 20
 
 
-def init():
+def initialise():
     textureUnits = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_IMAGE_UNITS)
     logging.info("Found {} texture units".format(textureUnits))
     if textureUnits < 32:
@@ -64,35 +64,35 @@ def init():
 
 activeTexture = None
 
-pool = set()
+texture_id_pool = set()
 
 
 def get_texture_id():
-    """This function must be run on the OpenGL thread."""
-    if len(pool) == 0:
-        pool.update(list(gl.glGenTextures(10)))
+    """Obtains an unused texture id from the graphics library.
+
+    This function must be run on the OpenGL thread."""
+    if len(texture_id_pool) == 0:
+        texture_id_pool.update(list(gl.glGenTextures(10)))
         logging.info("Requested 10 new textures")
-    return pool.pop()
+    return texture_id_pool.pop()
 
 
 class Texture:
 
-    def __init__(self, type, nonblocking=False, internal_format=gl.GL_RGBA32F):
+    def __init__(self, type, internal_format=gl.GL_RGBA32F):
         """Creates a new texture of the given type.  If nonblocking is specified
-    true, the creation of the texture handle will be added to the GPU queue.  If
-    this is done, all texture loads _must_ occur after the handle has been
-    acquired."""
+        true, the creation of the texture handle will be added to the GPU queue.  If
+        this is done, all texture loads _must_ occur after the handle has been
+        acquired."""
         self.textureType = type
         self.id = None
         self._data = None
         self.internal_format = internal_format
 
-        if nonblocking:
-            taskQueue.addToMainThreadQueue(self.initialise)
-        else:
-            self.initialise()
+        self.initialise()
 
     def initialise(self):
+        """This function must be run on the main thread."""
         self.id = get_texture_id()
         self.load()
 
@@ -103,7 +103,7 @@ class Texture:
             gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR
         )
 
-        logging.debug("New texture {}".format(self.id))
+        logging.debug("New texture in ID {}".format(self.id))
 
     def loadData(
         self,
@@ -115,8 +115,8 @@ class Texture:
         make_mipmap=True,
     ):
         """Loads data to the GPU.  Parameter `data` may either be a numpy array of
-    shape `(width,height,4)` or `None` (in which case `width` and `height` must
-    be specified)."""
+        shape `(width,height,4)` or `None` (in which case `width` and `height` must
+        be specified)."""
         if data is not None:
             if data.nbytes > 1024 ** 6:
                 logging.warn(
@@ -132,6 +132,7 @@ class Texture:
             width = data.shape[0]
         if height == None:
             height = data.shape[1]
+
         self.load()
         gl.glTexImage2D(
             gl.GL_TEXTURE_2D,
@@ -144,6 +145,7 @@ class Texture:
             type,
             data,
         )
+
         if keep_copy:
             self._data = data.copy()
         if make_mipmap:
@@ -168,6 +170,7 @@ class Texture:
         return gl.glGetTexImage(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, gl.GL_FLOAT)
 
     def saveToFile(self, fileName):
+        """Saves the image in this texture to a file."""
         np.save(fileName, self.getData())
 
     def loadFromFile(self, fileName):
@@ -190,8 +193,8 @@ class Texture:
 
             return data
 
-        data = assets.getAsset(
-            filename, readFromFile, (filename,), args.args.reload_textures
+        data = dent.assets.getAsset(
+            filename, readFromFile, (filename,), dent.args.args.reload_textures
         )
 
         def uploadToGPU(data):
@@ -202,7 +205,7 @@ class Texture:
         # Either we do this on the main thread, or if we are not using a daemon
         # style, we are the main thread and we must do it now.
         if daemon:
-            taskQueue.addToMainThreadQueue(uploadToGPU, (data,))
+            dent.taskQueue.addToMainThreadQueue(uploadToGPU, (data,))
         else:
             uploadToGPU(data)
 
@@ -234,21 +237,30 @@ class Texture:
             f1 = 1 if f1 > 0.5 else 0
             f2 = 1 if f2 > 0.5 else 0
 
-        r = (
-            self._data[int(y), int(x)] * (1 - f2) + self._data[int(y + 1), int(x)] * f2
-        ) * (
-            1 - f1
-        ) + (
-            self._data[int(y), int(x + 1)]
-            * (1 - f2)
-            + self._data[int(y + 1), int(x + 1)]
-            * f2
-        ) * f1
+        r = np.interp(
+            f1,
+            [0, 1],
+            [
+                np.interp(
+                    f2,
+                    [0, 1],
+                    [self._data[int(y), int(x)], self._data[int(y + 1), int(x)]],
+                ),
+                np.interp(
+                    f2,
+                    [0, 1],
+                    [
+                        self._data[int(y), int(x + 1)],
+                        self._data[int(y + 1), int(x + 1)],
+                    ],
+                ),
+            ],
+        )
         return r
 
     def __del__(self):
         logging.info("Freeing texture {}".format(self.id))
-        pool.update([self.id])
+        texture_id_pool.update([self.id])
 
 
 whiteTexture = None
