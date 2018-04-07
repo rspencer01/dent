@@ -13,6 +13,7 @@ import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 from PIL import Image
 import random
+import dent.graphics
 
 import args
 args.parse()
@@ -30,21 +31,14 @@ logging.getLogger('pyassimp').setLevel(logging.INFO)
 import messaging
 import configuration
 
-Re = 6.360e6
-
-program = None
 windowHeight = 512
 windowWidth = 512
-cameraSpeed = 20
 frametime = 0.
 lastframe = time.time()
 hold_mouse = True
-fastMode = False
 trianglesQuery = None
 frametimes = [0 for _ in xrange(200)]
 frametimecount = 0
-
-aboveGround = 1
 
 def display():
   glut.glutSwapBuffers()
@@ -91,18 +85,16 @@ def mouse_motion_handler(x, y):
     if hold_mouse:
       glut.glutWarpPointer(windowWidth/2,windowHeight/2)
 
-def glut_reshape_handler(width,height):
+def reshape_handler(width,height):
   global windowHeight,windowWidth
   windowHeight = height
   windowWidth = width
   for scene in scenes:
     for stage in scene.renderPipeline.stages:
       stage.reshape(width, height)
-  messaging.add_message(messaging.Message('window_reshape',(width, height)))
 
-keys = set()
 def keyboard_handler(key):
-  global hold_mouse, fastMode, scene
+  global hold_mouse, scene
   if key=='\033':
     if args.args.replay is None:
       messaging.save_messages()
@@ -129,11 +121,7 @@ def keyboard_handler(key):
     hold_mouse = not hold_mouse
   if key=='?':
     print open('help').read()
-  keys.add(key)
 
-def keyboard_up_handler(key):
-  if key in keys:
-    keys.remove(key)
 
 def mouse_handler(button, state, x, y):
   if button in (3,4):
@@ -164,27 +152,7 @@ def userCommand():
       print "Exception:",e
     command = raw_input('>>> ')
 
-glut.glutInit(sys.argv)
-logging.info("Requesting OpenGL 4.2")
-glut.glutInitContextVersion(4, 2);
-glut.glutInitContextFlags(glut.GLUT_FORWARD_COMPATIBLE);
-glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE);
-glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
-glut.glutInitWindowSize(512,512);
-glut.glutCreateWindow("Dent")
-glut.glutSetKeyRepeat(glut.GLUT_KEY_REPEAT_OFF)
-glut.glutIgnoreKeyRepeat(1)
-logging.info("Obtained OpenGL "+gl.glGetString(gl.GL_VERSION))
-logging.info("Uniform limit (vertex) {}".format(
-  str(gl.glGetIntegerv(gl.GL_MAX_VERTEX_UNIFORM_COMPONENTS))))
-logging.info("Tesselation limit {}".format(
-  str(gl.glGetIntegerv(gl.GL_MAX_TESS_GEN_LEVEL))))
-gl.glEnable(gl.GL_DEPTH_TEST)
-gl.glPolygonMode(gl.GL_FRONT_AND_BACK,gl.GL_FILL);
-gl.glEnable(gl.GL_BLEND)
-gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
-gl.glCullFace(gl.GL_BACK)
-glut.glutReshapeFunc(glut_reshape_handler)
+dent.graphics.initialise_graphics()
 glut.glutDisplayFunc(display)
 if args.args.replay is None:
   glut.glutMouseFunc(glut_mouse_handler)
@@ -192,7 +160,6 @@ if args.args.replay is None:
   glut.glutMotionFunc(glut_mouse_motion_handler)
   glut.glutKeyboardFunc(glut_keyboard_handler)
   glut.glutKeyboardUpFunc(glut_keyboard_up_handler)
-glut.glutSetCursor(glut.GLUT_CURSOR_NONE)
 
 import Texture
 Texture.init()
@@ -205,10 +172,10 @@ scene = [i for i in scenes if type(i)==game_scenes.__starting_scene__][0]
 messaging.add_handler('mouse', mouse_handler)
 messaging.add_handler('mouse_motion', mouse_motion_handler)
 messaging.add_handler('keyboard', keyboard_handler)
-messaging.add_handler('keyboard_up', keyboard_up_handler)
 messaging.add_handler('timer', timer_handler)
 messaging.add_handler('game_start', game_start_handler)
 messaging.add_handler('screenshot', takeScreenshot)
+messaging.add_handler('window_reshape', reshape_handler)
 
 logging.info("Initialisation finished")
 messaging.add_message(messaging.Message('game_start', (time.time(),)))
