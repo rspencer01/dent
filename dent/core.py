@@ -13,7 +13,6 @@ import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 from PIL import Image
 import random
-import dent.graphics
 
 import args
 args.parse()
@@ -30,6 +29,7 @@ logging.getLogger('pyassimp').setLevel(logging.INFO)
 
 import messaging
 import configuration
+import dent.graphics
 
 windowHeight = 512
 windowWidth = 512
