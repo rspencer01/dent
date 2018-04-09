@@ -16,7 +16,7 @@ from collections import namedtuple
 import Animation
 
 MeshOptions = namedtuple("MeshOptions", ('has_bumpmap', 'has_bones'))
-MeshDatum = namedtuple("MeshDatum", ('name', 'data', 'indices', 'colormap', 'normalmap', 'specularmap', 'options','mesh'))
+MeshDatum = namedtuple("MeshDatum", ('name', 'data', 'indices', 'options','mesh'))
 
 def getOptionNumber(meshOptions):
   ans = 0
@@ -54,7 +54,6 @@ class Object(object):
     self.scene = None
     self.meshes = []
     self.renderIDs = []
-    self.textures = []
     self.scale = scale
     self.bones = {}
     self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
@@ -135,12 +134,11 @@ class Object(object):
     self.bones = dent.assets.getAsset(self.name+'-bones', lambda: self.bones, forceReload=True)
 
 
-
   def addMesh(self, name, assimp_mesh, trans):
     logging.info("Loading mesh {}".format(name))
     options = MeshOptions(False, False)
     def load_mesh_from_assimp():
-      mesh = Mesh(name, trans, self.offset)
+      mesh = Mesh(name, trans, self.offset, self.directory)
       mesh.load_from_assimp(assimp_mesh, self.directory, self.scene, self)
       return mesh
 
@@ -152,31 +150,18 @@ class Object(object):
     self.bounding_box_max = np.max([self.bounding_box_min,
                                     np.max(mesh.data["position"], 0)],0)
 
-    # Load the texture
-    if mesh.diffuse_texture_file:
-      texture = TextureManager.get_texture(self.directory+'/'+mesh.diffuse_texture_file, Texture.COLORMAP)
-    else:
-      texture = Texture.getWhiteTexture();
-
+    mesh.load_textures()
     if mesh.normal_texture_file:
-      normalTexture = TextureManager.get_texture(self.directory+'/'+mesh.normal_texture_file, Texture.NORMALMAP)
-      options = options._replace(has_bumpmap=True)
+        options = options._replace(has_bumpmap=True)
     else:
-      normalTexture = None
-      options = options._replace(has_bumpmap=False)
-    if mesh.specular_texture_file:
-      specTexture = TextureManager.get_texture(self.directory+'/'+mesh.specular_texture_file, Texture.SPECULARMAP)
-    else:
-      specTexture = Texture.getBlackTexture()
-      specTexture.textureType = Texture.SPECULARMAP
+        options = options._replace(has_bumpmap=False)
 
     # Do skinning
     if self.will_animate:
       if len(self.bones) > 0:
         options = options._replace(has_bones=True)
 
-    self.textures.append(texture)
-    self.meshes.append(MeshDatum(name, mesh.data, mesh.indices, texture, normalTexture, specTexture, options, mesh))
+    self.meshes.append(MeshDatum(name, mesh.data, mesh.indices, options, mesh))
 
     taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh.data, mesh.indices, mesh))
 
@@ -199,25 +184,23 @@ class Object(object):
     t[0][0:3], t[2][0:3] = np.cos(self.angle) * t[0][0:3] + np.sin(self.angle) * t[2][0:3],\
                            np.cos(self.angle) * t[2][0:3] - np.sin(self.angle) * t[0][0:3]
     t[0:3,0:3] *= self.scale
-    transforms.translate(t, self.last_unanimated_position[0], self.last_unanimated_position[1], self.last_unanimated_position[2])
+    if self.last_unanimated_position is not None:
+      transforms.translate(t, self.last_unanimated_position[0], self.last_unanimated_position[1], self.last_unanimated_position[2])
+    else:
+      transforms.translate(t, self.position[0], self.position[1], self.position[2])
     shader['model'] = t
 
     options = None
     if self.action_controller is not None:
       shader['bones'] = self.bone_transforms
-
     for meshdatum,renderID in zip(self.meshes,self.renderIDs):
       # Set options
       if options != getOptionNumber(meshdatum.options):
         options = getOptionNumber(meshdatum.options)
         shader['options'] = options
-
+      
       # Load textures
-      meshdatum.colormap.load()
-      meshdatum.specularmap.load()
-      meshdatum.mesh.set_material_uniforms()
-      if meshdatum.options.has_bumpmap:
-        meshdatum.normalmap.load()
+      meshdatum.mesh.set_material_uniforms(shader)
       shader.draw(gl.GL_TRIANGLES, renderID)
 
 

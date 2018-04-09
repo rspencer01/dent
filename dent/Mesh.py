@@ -2,6 +2,8 @@ import logging
 import os
 import pyassimp.material
 import numpy as np
+import dent.TextureManager
+import dent.Texture
 import yaml
 import StringIO
 import tarfile
@@ -58,14 +60,15 @@ class Mesh(object):
     """ Holds the data for a single mesh.
 
     This object describes, in memory, the vertex data for a particular mesh of a
-    model.  Mesh loading from numpy meshes is also implemented.
+    model.  Mesh loading from pyassimp meshes is also implemented.
 
     In general, this object should always belong to an Object, be loaded from a
     file and not be created by the game.  It is suitable to be saved to disk
     using the dent asset manager."""
 
-    def __init__(self, name, transform, offset):
+    def __init__(self, name, transform, offset, directory):
         self.name = name
+        self.directory = directory
         self.data = None
         self.indices = None
         self.transform = transform
@@ -73,6 +76,9 @@ class Mesh(object):
         self.diffuse_texture_file = None
         self.normal_texture_file = None
         self.specular_texture_file = None
+        self.diffuse_texture = None
+        self.normal_texture = None
+        self.specular_texture = None
         self.material_diffuse_color = None
 
     def load_from_assimp(self, assimp_mesh, directory, scene, parent):
@@ -165,6 +171,33 @@ class Mesh(object):
 
     def set_material_uniforms(self, shader):
         shader["diffuse_tint"] = self.material_diffuse_color
+        self.diffuse_texture.load()
+        if self.normal_texture:
+            self.normal_texture.load()
+        self.specular_texture.load()
+
+    def load_textures(self):
+        if self.diffuse_texture_file:
+            self.diffuse_texture = dent.TextureManager.get_texture(
+                os.path.join(self.directory, self.diffuse_texture_file),
+                dent.Texture.COLORMAP,
+            )
+        else:
+            self.diffuse_texture = dent.Texture.getWhiteTexture()
+
+        if self.normal_texture_file:
+            self.normal_texture = dent.TextureManager.get_texture(
+                os.path.join(self.directory, self.normal_texture_file),
+                dent.Texture.NORMALMAP,
+            )
+        if self.specular_texture_file:
+            self.specular_texture = dent.TextureManager.get_texture(
+                os.path.join(self.directory, mesh.specular_texture_file),
+                dent.Texture.SPECULARMAP,
+            )
+        else:
+            self.specular_texture = dent.Texture.getBlackTexture()
+            self.specular_texture.textureType = dent.Texture.SPECULARMAP
 
     @staticmethod
     def _dent_asset_load(datastore):
@@ -172,12 +205,15 @@ class Mesh(object):
             raise IOError()
 
         config = yaml.load(datastore.extractfile("config").read())
-        mesh = Mesh(config["name"], config["transform"], config["offset"])
+        mesh = Mesh(
+            config["name"], config["transform"], config["offset"], config["directory"]
+        )
         mesh.indices = config["indices"]
         mesh.diffuse_texture_file = config["diffuse_texture_file"]
         mesh.normal_texture_file = config["normal_texture_file"]
         mesh.specular_texture_file = config["specular_texture_file"]
         mesh.data = np.load(datastore.extractfile("data"))
+        mesh.load_textures()
         return mesh
 
     def _dent_asset_save(self, datastore):
@@ -195,6 +231,7 @@ class Mesh(object):
             yaml.dump(
                 {
                     "name": self.name,
+                    "directory": self.directory,
                     "transform": self.transform,
                     "offset": self.offset,
                     "indices": self.indices,
