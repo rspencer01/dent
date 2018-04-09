@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import tarfile
 import cPickle as pickle
 import numpy as np
 
@@ -25,7 +26,13 @@ def get_asset_metadata(assetID):
     return {"name": lines[0], "type": lines[1]}
 
 
-def loadFromFile(filename):
+def loadFromFile(filename, type_hint=None):
+    if hasattr(type_hint, "_dent_asset_load"):
+        if tarfile.is_tarfile(filename):
+            datastore = tarfile.open(filename, "r")
+            obj = type_hint._dent_asset_load(datastore)
+            datastore.close()
+            return obj
     try:
         obj = np.load(filename)
         logging.debug("Loaded object as numpy array")
@@ -44,7 +51,12 @@ def loadFromFile(filename):
 
 
 def saveToFile(obj, filename, assetName="<unknown>"):
-    if type(obj) in [np.ndarray]:
+    if hasattr(obj, "_dent_asset_save"):
+        datastore = tarfile.open(filename, "w")
+        obj._dent_asset_save(datastore)
+        datastore.close()
+        asset_type = type(obj).__name__
+    elif type(obj) in [np.ndarray]:
         logging.debug("Saving object as numpy array")
         np.save(open(filename, "wb"), obj)
         asset_type = "numpy"
@@ -56,7 +68,7 @@ def saveToFile(obj, filename, assetName="<unknown>"):
         f.write("{}\n{}\n".format(assetName, asset_type))
 
 
-def getAsset(assetName, function=None, args=(), forceReload=False):
+def getAsset(assetName, function=None, args=(), forceReload=False, type_hint=None):
     logging.info("Loading asset '{}'".format(assetName))
     assetID = getInternalAssetID(assetName)
     if forceReload and function is None:
@@ -64,7 +76,7 @@ def getAsset(assetName, function=None, args=(), forceReload=False):
 
     filename = getFilename(assetID)
     if os.path.exists(filename) and not forceReload:
-        return loadFromFile(filename)
+        return loadFromFile(filename, type_hint)
 
     if not function:
         raise Exception("Asset not found")
