@@ -144,7 +144,7 @@ class Object(object):
       mesh.load_from_assimp(assimp_mesh, self.directory, self.scene, self)
       return mesh
 
-    mesh = dent.assets.getAsset(name, load_mesh_from_assimp)
+    mesh = dent.assets.getAsset(name, load_mesh_from_assimp, type_hint=Mesh)
 
     # Update the bounding box
     self.bounding_box_min = np.min([self.bounding_box_min,

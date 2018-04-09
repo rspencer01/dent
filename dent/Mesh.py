@@ -2,6 +2,9 @@ import logging
 import os
 import pyassimp.material
 import numpy as np
+import yaml
+import StringIO
+import tarfile
 
 
 def get_texture_filename(material, texture_type, directory):
@@ -162,3 +165,47 @@ class Mesh(object):
 
     def set_material_uniforms(self, shader):
         shader["diffuse_tint"] = self.material_diffuse_color
+
+    @staticmethod
+    def _dent_asset_load(datastore):
+        if "config" not in datastore.getnames() or "data" not in datastore.getnames():
+            raise IOError()
+
+        config = yaml.load(datastore.extractfile("config").read())
+        mesh = Mesh(config["name"], config["transform"], config["offset"])
+        mesh.indices = config["indices"]
+        mesh.diffuse_texture_file = config["diffuse_texture_file"]
+        mesh.normal_texture_file = config["normal_texture_file"]
+        mesh.specular_texture_file = config["specular_texture_file"]
+        mesh.data = np.load(datastore.extractfile("data"))
+        return mesh
+
+    def _dent_asset_save(self, datastore):
+        """Saves the image in this texture to a dent asset datastore."""
+        data_buffer = StringIO.StringIO()
+        np.save(data_buffer, self.data)
+        data_buffer.flush()
+        data_buffer.seek(0)
+        data_header = tarfile.TarInfo("data")
+        data_header.size = data_buffer.len
+        datastore.addfile(data_header, data_buffer)
+
+        config_buffer = StringIO.StringIO()
+        config_buffer.write(
+            yaml.dump(
+                {
+                    "name": self.name,
+                    "transform": self.transform,
+                    "offset": self.offset,
+                    "indices": self.indices,
+                    "diffuse_texture_file": self.diffuse_texture_file,
+                    "normal_texture_file": self.normal_texture_file,
+                    "specular_texture_file": self.specular_texture_file,
+                }
+            )
+        )
+        config_buffer.flush()
+        config_buffer.seek(0)
+        config_header = tarfile.TarInfo("config")
+        config_header.size = config_buffer.len
+        datastore.addfile(config_header, config_buffer)
