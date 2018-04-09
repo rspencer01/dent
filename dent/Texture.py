@@ -1,6 +1,9 @@
 from PIL import Image
+import tarfile
+import StringIO
 import OpenGL.GL as gl
 import dent.args
+import yaml
 import dent.assets
 import dent.taskQueue
 import logging
@@ -77,7 +80,7 @@ def get_texture_id():
     return texture_id_pool.pop()
 
 
-class Texture:
+class Texture(object):
 
     def __init__(self, type, internal_format=gl.GL_RGBA32F):
         """Creates a new texture of the given type.  If nonblocking is specified
@@ -169,10 +172,6 @@ class Texture:
         self.load()
         return gl.glGetTexImage(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, gl.GL_FLOAT)
 
-    def saveToFile(self, fileName):
-        """Saves the image in this texture to a file."""
-        np.save(fileName, self.getData())
-
     def loadFromFile(self, fileName):
         data = np.load(fileName)
         self.loadData(data)
@@ -180,34 +179,18 @@ class Texture:
 
     def loadFromImage(self, filename, daemon=True):
 
-        def readFromFile(filename):
-            teximag = Image.open(filename)
-            data = np.array(teximag.getdata()).astype(np.float32)
+        teximag = Image.open(filename)
+        data = np.array(teximag.getdata()).astype(np.float32)
 
-            ## Make this a 4 color file
-            if (data.shape[1] != 4):
-                add = np.zeros((data.shape[0], 1), dtype=np.float32) + 256
-                data = np.append(data, add, axis=1)
+        ## Make this a 4 color file
+        if (data.shape[1] != 4):
+            add = np.zeros((data.shape[0], 1), dtype=np.float32) + 256
+            data = np.append(data, add, axis=1)
 
-            data = data.reshape(teximag.size[0], teximag.size[1], 4)
+        data = data.reshape(teximag.size[0], teximag.size[1], 4)
 
-            return data
-
-        data = dent.assets.getAsset(
-            filename, readFromFile, (filename,), dent.args.args.reload_textures
-        )
-
-        def uploadToGPU(data):
-            logging.info("Uploading texture {} ({})".format(self.id, filename))
-            self.loadData(data / 256)
-
-        # We have now loaded the image data.  We need to upload it to the GPU.
-        # Either we do this on the main thread, or if we are not using a daemon
-        # style, we are the main thread and we must do it now.
-        if daemon:
-            dent.taskQueue.addToMainThreadQueue(uploadToGPU, (data,))
-        else:
-            uploadToGPU(data)
+        logging.info("Uploading texture {} ({})".format(self.id, filename))
+        self.loadData(data / 256)
 
     def read(self, x, y, interpolate=True):
         assert self._data is not None
@@ -261,6 +244,38 @@ class Texture:
     def __del__(self):
         logging.info("Freeing texture {}".format(self.id))
         texture_id_pool.update([self.id])
+
+    @staticmethod
+    def _dent_asset_load(datastore):
+      if 'config' not in datastore.getnames() or 'data' not in datastore.getnames():
+        raise IOError()
+      config = yaml.load(datastore.extractfile('config').read())
+      texture = Texture(config['type'],
+          internal_format=config['format'])
+      data = np.load(datastore.extractfile('data'))
+      texture.loadData(data)
+      return texture
+
+    def _dent_asset_save(self, datastore):
+        """Saves the image in this texture to a dent asset datastore."""
+        data_buffer = StringIO.StringIO()
+        np.save(data_buffer, self.getData())
+        data_buffer.flush()
+        data_buffer.seek(0)
+        data_header = tarfile.TarInfo('data')
+        data_header.size = data_buffer.len
+        datastore.addfile(data_header,data_buffer)
+
+        config_buffer = StringIO.StringIO()
+        config_buffer.write(yaml.dump({
+          'type': self.textureType,
+          'format': self.internal_format,
+          }))
+        config_buffer.flush()
+        config_buffer.seek(0)
+        config_header = tarfile.TarInfo('config')
+        config_header.size = config_buffer.len
+        datastore.addfile(config_header, config_buffer)
 
 
 whiteTexture = None
