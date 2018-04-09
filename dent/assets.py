@@ -17,18 +17,13 @@ def getFilename(assetID):
   return os.path.join('.', '_assets', assetID)
 
 
-def get_asset_type(assetID):
-  if open(getFilename(assetID)).read(6) == '\x93NUMPY':
-    return 'numpy'
-  return 'pickle'
-
-
 def get_asset_metadata(assetID):
   if assetID+'.meta' not in os.listdir('_assets'):
     raise Exception("Asset not present")
   lines = map(lambda x: x.strip(), open('_assets/'+assetID+'.meta').readlines())
   return {
       "name": lines[0],
+      "type": lines[1],
       }
 
 
@@ -52,11 +47,13 @@ def saveToFile(obj, filename, assetName='<unknown>'):
   if type(obj) in [np.ndarray]:
     logging.debug("Saving object as numpy array")
     np.save(open(filename, 'wb'), obj)
+    asset_type = 'numpy'
   else:
     logging.debug("Saving object as python pickle")
     pickle.dump(obj, open(filename, 'wb'))
+    asset_type = 'pickle'
   with open(filename+'.meta', 'w') as f:
-    f.write("{}\n".format(assetName))
+    f.write("{}\n{}\n".format(assetName, asset_type))
 
 
 def getAsset(assetName, function=None, args=(), forceReload=False):
@@ -85,3 +82,6 @@ def getAllAssetIds():
 
 def getAssetName(assetID):
   return get_asset_metadata(assetID)['name']
+
+def get_asset_type(assetID):
+  return get_asset_metadata(assetID)['type']
