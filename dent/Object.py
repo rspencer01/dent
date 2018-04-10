@@ -27,12 +27,6 @@ def getOptionNumber(meshOptions):
   return ans
 
 
-shader                = Shaders.getShader("general-noninstanced")
-shader["colormap"]    = Texture.COLORMAP_NUM
-shader["normalmap"]   = Texture.NORMALMAP_NUM
-shader["specularmap"] = Texture.SPECULARMAP_NUM
-
-
 class Object(object):
 
   def __init__(
@@ -74,6 +68,11 @@ class Object(object):
     self.bidirection = np.array((1, 0, 0), dtype=float)
     self.angle = angle
     self.daemon = daemon
+
+    self.shader                = Shaders.getShader("general-noninstanced")
+    self.shader["colormap"]    = Texture.COLORMAP_NUM
+    self.shader["normalmap"]   = Texture.NORMALMAP_NUM
+    self.shader["specularmap"] = Texture.SPECULARMAP_NUM
 
     self.bounding_box_min = np.zeros(3, dtype=float) + 1e10
     self.bounding_box_max = np.zeros(3, dtype=float) - 1e10
@@ -183,7 +182,7 @@ class Object(object):
     taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh.data, mesh.indices, mesh))
 
   def uploadMesh(self, data, indices, mesh):
-    self.renderIDs.append(shader.setData(data, indices))
+    self.renderIDs.append(self.shader.setData(data, indices))
     logging.info("Loaded mesh {}".format(mesh.__repr__()))
 
   def update(self, time=0):
@@ -191,7 +190,7 @@ class Object(object):
       self.action_controller.update(time)
 
   def display(self):
-    shader.load()
+    self.shader.load()
     t = np.eye(4, dtype=np.float32)
     t[2, 0:3] = self.direction
     t[0, 0:3] = self.bidirection
@@ -209,20 +208,20 @@ class Object(object):
         transforms.translate(
             t, self.position[0], self.position[1], self.position[2]
         )
-    shader["model"] = t
+    self.shader["model"] = t
 
     options = None
     if self.action_controller is not None:
-      shader["bones"] = self.bone_transforms
+      self.shader["bones"] = self.bone_transforms
     for meshdatum, renderID in zip(self.meshes, self.renderIDs):
       # Set options
       if options != getOptionNumber(meshdatum.options):
         options = getOptionNumber(meshdatum.options)
-        shader["options"] = options
+        self.shader["options"] = options
 
       # Load textures
-      meshdatum.mesh.set_material_uniforms(shader)
-      shader.draw(gl.GL_TRIANGLES, renderID)
+      meshdatum.mesh.set_material_uniforms(self.shader)
+      self.shader.draw(gl.GL_TRIANGLES, renderID)
 
   def add_animation(self, filename):
     if self.action_controller is None:
