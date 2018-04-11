@@ -166,8 +166,8 @@ class Object(object):
         [self.bounding_box_min, np.max(mesh.data["position"], 0)], 0
     )
 
-    mesh.load_textures()
-    if mesh.normal_texture_file:
+    mesh.material.load_textures()
+    if mesh.material.normal_texture_file:
         options = options._replace(has_bumpmap=True)
     else:
         options = options._replace(has_bumpmap=False)
@@ -220,7 +220,7 @@ class Object(object):
         self.shader["options"] = options
 
       # Load textures
-      meshdatum.mesh.set_material_uniforms(self.shader)
+      meshdatum.mesh.set_uniforms(self.shader)
       self.shader.draw(gl.GL_TRIANGLES, renderID)
 
   def add_animation(self, filename):
