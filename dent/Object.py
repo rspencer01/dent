@@ -59,7 +59,7 @@ class Object(object):
     self.action_controller = None
     self.will_animate = will_animate
     self.position = np.array(position, dtype=np.float32)
-    self.last_unanimated_position = position
+    self.last_unanimated_position = None
     if self.will_animate:
       self.offset = np.zeros(3)
     else:
