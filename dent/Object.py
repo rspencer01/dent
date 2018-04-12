@@ -17,7 +17,7 @@ from collections import namedtuple
 import Animation
 
 MeshOptions = namedtuple("MeshOptions", ("has_bumpmap", "has_bones"))
-MeshDatum = namedtuple("MeshDatum", ("name", "data", "indices", "options", "mesh"))
+MeshDatum = namedtuple("MeshDatum", ("name", "options", "mesh" ))
 
 
 def getOptionNumber(meshOptions):
@@ -53,7 +53,8 @@ class Object(object):
         self.name = name
         self.scene = None
         self.meshes = []
-        self.renderIDs = []
+        self.meshes_per_material = {}
+        self.renderIDs = {}
         self.scale = scale
         self.bones = {}
         self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
@@ -178,6 +179,9 @@ class Object(object):
         )
         for material in self.materials.values():
             material.load_textures()
+            self.meshes_per_material[material.name] = []
+        for mesh in self.meshes:
+            self.meshes_per_material[mesh.mesh.material_name].append(mesh.mesh)
 
     def addMesh(self, name, assimp_mesh, trans):
         """Adds a mesh to this object.  This may be loaded from cache if possible."""
@@ -204,13 +208,13 @@ class Object(object):
             if len(self.bones) > 0:
                 options = options._replace(has_bones=True)
 
-        self.meshes.append(MeshDatum(name, mesh.data, mesh.indices, options, mesh))
+        self.meshes.append(MeshDatum(name, options, mesh))
 
-        taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh.data, mesh.indices, mesh))
+        taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh,))
 
-    def uploadMesh(self, data, indices, mesh):
-        self.renderIDs.append(self.shader.setData(data, indices))
-        logging.info("Loaded mesh {}".format(mesh.__repr__()))
+    def uploadMesh(self, mesh):
+        self.renderIDs[mesh.name] = self.shader.setData(mesh.data, mesh.indices)
+        logging.info("Loaded mesh {}".format(mesh.name))
 
     def update(self, time=0):
         if self.action_controller is not None:
@@ -242,15 +246,15 @@ class Object(object):
         options = None
         if self.action_controller is not None:
             self.shader["bones"] = self.bone_transforms
-        for meshdatum, renderID in zip(self.meshes, self.renderIDs):
-            # Set options
-            if options != getOptionNumber(meshdatum.options):
-                options = getOptionNumber(meshdatum.options)
-                self.shader["options"] = options
-
-            # Load textures
-            self.materials[meshdatum.mesh.material_name].set_uniforms(self.shader)
-            self.shader.draw(gl.GL_TRIANGLES, renderID)
+        for material in self.materials.values():
+          material.set_uniforms(self.shader)
+          ## Set options
+          #if options != getOptionNumber(meshdatum.options):
+          #    options = getOptionNumber(meshdatum.options)
+          #    self.shader["options"] = options
+          for mesh in self.meshes_per_material[material.name]:
+            if mesh.name in self.renderIDs:
+              self.shader.draw(gl.GL_TRIANGLES, self.renderIDs[mesh.name])
 
     def add_animation(self, filename):
         if self.action_controller is None:
