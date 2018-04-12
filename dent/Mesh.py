@@ -1,45 +1,11 @@
 import logging
 import os
-import pyassimp.material
 import numpy as np
 import dent.TextureManager
 import dent.Texture
 import yaml
 import StringIO
 import tarfile
-
-from dent.Material import Material
-
-
-def get_texture_filename(material, texture_type, directory):
-    """Finds the filepath of a texture given the material and the directory.
-
-    This function looks for "dent-standard" texture locations, (the directory
-    of the model, plus `<MATERIAL_NAME>.diff.png` etc. as well as any filenames
-    mentioned in the material file.
-
-    If no suitable filename can be found, None is returned.
-    """
-    dent_formats = {
-        pyassimp.material.aiTextureType_DIFFUSE: "{}.diff.png",
-        pyassimp.material.aiTextureType_NORMALS: "{}.norm.png",
-        pyassimp.material.aiTextureType_SPECULAR: "{}.spec.png",
-    }
-    material_name = material.properties[("name", 0)]
-
-    if texture_type in dent_formats:
-        filename = os.path.join(
-            directory, dent_formats[texture_type].format(material_name)
-        )
-        if os.path.exists(filename):
-            return dent_formats[texture_type].format(material_name)
-
-    if ("file", texture_type) in material.properties:
-        filename = os.path.join(directory, material.properties[("file", texture_type)])
-        if os.path.exists(filename):
-            return material.properties[("file", texture_type)]
-
-    logging.debug("Texture {} {} {} not found", directory, material_name, texture_type)
 
 
 def get_node_parent(scene, name):
@@ -75,7 +41,7 @@ class Mesh(object):
         self.indices = None
         self.transform = transform
         self.offset = offset
-        self.material = Material()
+        self.material_name = None
 
     def load_from_assimp(self, assimp_mesh, directory, scene, parent):
         self.data = np.zeros(
@@ -124,25 +90,6 @@ class Mesh(object):
         # Get the triangle indices in a flat array.
         self.indices = assimp_mesh.faces.reshape((-1,))
 
-        # Load the texture filenames
-        self.material.diffuse_texture_file = get_texture_filename(
-            assimp_mesh.material, pyassimp.material.aiTextureType_DIFFUSE, directory
-        )
-        self.material.normal_texture_file = get_texture_filename(
-            assimp_mesh.material, pyassimp.material.aiTextureType_NORMALS, directory
-        ) or get_texture_filename(
-            assimp_mesh.material, pyassimp.material.aiTextureType_HEIGHT, directory
-        )
-        self.material.specular_texture_file = get_texture_filename(
-            assimp_mesh.material, pyassimp.material.aiTextureType_SPECULAR, directory
-        )
-        self.material.material_diffuse_color = np.array(
-            assimp_mesh.material.properties[("diffuse", 0)]
-        )
-
-        self.material.name = assimp_mesh.material.properties[("name", 0)]
-        self.material.directory = self.directory
-
         if len(assimp_mesh.bones) > 0:
             for bone in assimp_mesh.bones:
                 n = len(parent.bones)
@@ -168,8 +115,7 @@ class Mesh(object):
                     ] = relationship.weight
                     self.data["bone_ids"][relationship.vertexid][bone_vec_number] = nn
 
-    def set_uniforms(self, shader):
-        self.material.set_uniforms(shader)
+        self.material_name = assimp_mesh.material.properties[("name", 0)]
 
     @staticmethod
     def _dent_asset_load(datastore):
@@ -181,12 +127,8 @@ class Mesh(object):
             config["name"], config["transform"], config["offset"], config["directory"]
         )
         mesh.indices = config["indices"]
-        mesh.material.directory = mesh.directory
-        mesh.material.diffuse_texture_file = config["diffuse_texture_file"]
-        mesh.material.normal_texture_file = config["normal_texture_file"]
-        mesh.material.specular_texture_file = config["specular_texture_file"]
+        mesh.material_name = config["material_name"]
         mesh.data = np.load(datastore.extractfile("data"))
-        mesh.material.load_textures()
         return mesh
 
     def _dent_asset_save(self, datastore):
@@ -208,9 +150,7 @@ class Mesh(object):
                     "transform": self.transform,
                     "offset": self.offset,
                     "indices": self.indices,
-                    "diffuse_texture_file": self.material.diffuse_texture_file,
-                    "normal_texture_file": self.material.normal_texture_file,
-                    "specular_texture_file": self.material.specular_texture_file,
+                    "material_name": self.material_name,
                 }
             )
         )

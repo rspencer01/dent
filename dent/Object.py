@@ -12,6 +12,7 @@ import taskQueue
 import threading
 import ActionController
 from dent.Mesh import Mesh
+from dent.Material import Material
 from collections import namedtuple
 import Animation
 
@@ -93,10 +94,18 @@ class Object(object):
         pyassimp.release(self.scene)
 
     def loadFromFile(self):
-        logging.info("Loading object {} from {}".format(self.name, self.filename))
-        full_meshes = []
+        """Loads the object from the disk.  Where possible, the dent asset library will
+        use cached versions of meshes, materials and such forth."""
 
-        def get_mesh_info():
+        logging.info("Loading object {} from {}".format(self.name, self.filename))
+
+        material_names = dent.assets.getAsset(
+            self.name + "-material-names", lambda: None
+        )
+        self.bones = dent.assets.getAsset(self.name + "-bones", lambda: {})
+        mesh_info = dent.assets.getAsset(self.name + "-mesh_info", lambda: None)
+        full_meshes = []
+        if mesh_info is None or material_names is None:
             # Some of these are for static only and must be removed when doing bones.
             # This call is exceptionally slow.  Must we move to c?
             self.scene = pyassimp.load(
@@ -107,9 +116,20 @@ class Object(object):
                 | pyassimp.postprocess.aiProcess_LimitBoneWeights
                 | pyassimp.postprocess.aiProcess_GenNormals,
             )
-            logging.info("Postprocessing {}".format(self.name))
-
             mesh_info = []
+
+            self.materials = {}
+            for material in self.scene.materials:
+                self.materials[material.properties[("name", 0)]] = Material()
+                self.materials[material.properties[("name", 0)]].load_from_assimp(
+                    material, self.directory
+                )
+                dent.assets.saveAsset(
+                    self.name + "-material-" + material.properties[("name", 0)],
+                    self.materials[material.properties[("name", 0)]],
+                )
+            material_names = self.materials.keys()
+            dent.assets.saveAsset(self.name + "-material-names", material_names)
 
             def addNode(node, trans, node_info):
                 newtrans = trans.dot(node.transformation)
@@ -133,11 +153,9 @@ class Object(object):
 
             t = np.eye(4)
             addNode(self.scene.rootnode, t, mesh_info)
-            return mesh_info
 
-        self.bones = dent.assets.getAsset(self.name + "-bones", lambda: {})
+            dent.assets.saveAsset(self.name + "-mesh_info", mesh_info)
 
-        mesh_info = dent.assets.getAsset(self.name + "-mesh_info", get_mesh_info)
         if full_meshes:
             mesh_info = full_meshes
         for mesh in mesh_info:
@@ -147,7 +165,22 @@ class Object(object):
             self.name + "-bones", lambda: self.bones, forceReload=True
         )
 
+        self.materials = dict(
+            [
+                (
+                    name,
+                    dent.assets.getAsset(
+                        self.name + "-material-" + name, type_hint=Material
+                    ),
+                )
+                for name in material_names
+            ]
+        )
+        for material in self.materials.values():
+            material.load_textures()
+
     def addMesh(self, name, assimp_mesh, trans):
+        """Adds a mesh to this object.  This may be loaded from cache if possible."""
         logging.info("Loading mesh {}".format(name))
         options = MeshOptions(False, False)
 
@@ -165,12 +198,6 @@ class Object(object):
         self.bounding_box_max = np.max(
             [self.bounding_box_min, np.max(mesh.data["position"], 0)], 0
         )
-
-        mesh.material.load_textures()
-        if mesh.material.normal_texture_file:
-            options = options._replace(has_bumpmap=True)
-        else:
-            options = options._replace(has_bumpmap=False)
 
         # Do skinning
         if self.will_animate:
@@ -194,8 +221,10 @@ class Object(object):
         t = np.eye(4, dtype=np.float32)
         t[2, 0:3] = self.direction
         t[0, 0:3] = self.bidirection
+        # fmt: off
         t[0][0:3], t[2][0:3] = np.cos(self.angle) * t[0][0:3] + np.sin(self.angle) * t[2][0:3],\
                                np.cos(self.angle) * t[2][0:3] - np.sin(self.angle) * t[0][0:3]
+        #fmt: on
         t[0:3, 0:3] *= self.scale
         if self.last_unanimated_position is not None:
             transforms.translate(
@@ -220,7 +249,7 @@ class Object(object):
                 self.shader["options"] = options
 
             # Load textures
-            meshdatum.mesh.set_uniforms(self.shader)
+            self.materials[meshdatum.mesh.material_name].set_uniforms(self.shader)
             self.shader.draw(gl.GL_TRIANGLES, renderID)
 
     def add_animation(self, filename):
