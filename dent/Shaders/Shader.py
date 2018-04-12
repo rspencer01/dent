@@ -138,4 +138,3 @@ class Shader(object):
     self._setitems()
     gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
     gl.glDrawElements(type,self.objInfo[objectIndex].numIndices,gl.GL_UNSIGNED_INT,None)
-    gl.glFlush()

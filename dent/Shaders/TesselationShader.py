@@ -18,4 +18,3 @@ class TesselationShader(Shader):
     gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
     gl.glPatchParameteri(gl.GL_PATCH_VERTICES, patchVertices)
     gl.glDrawArrays(gl.GL_PATCHES, 0, number)
-    gl.glFlush()

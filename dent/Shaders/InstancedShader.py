@@ -68,4 +68,3 @@ class InstancedShader(GenericShader):
                                num,
                                offset
                                )
-    gl.glFlush()
