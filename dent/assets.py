@@ -88,6 +88,12 @@ def getAsset(assetName, function=None, args=(), forceReload=False, type_hint=Non
     return obj
 
 
+def saveAsset(assetName, value):
+    assetID = getInternalAssetID(assetName)
+    filename = getFilename(assetID)
+    saveToFile(value, filename, assetName)
+
+
 def getAllAssetIds():
     return [i for i in sorted(os.listdir("_assets")) if "meta" not in i]
 
