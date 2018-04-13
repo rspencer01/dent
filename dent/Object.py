@@ -17,7 +17,7 @@ from collections import namedtuple
 import Animation
 
 MeshOptions = namedtuple("MeshOptions", ("has_bumpmap", "has_bones"))
-MeshDatum = namedtuple("MeshDatum", ("name", "options", "mesh" ))
+MeshDatum = namedtuple("MeshDatum", ("name", "options", "mesh"))
 
 
 class Object(object):
@@ -250,7 +250,12 @@ class Object(object):
         if self.action_controller is None:
             self.action_controller = ActionController.ActionController(self)
 
-        animation = Animation.Animation(filename, self.bones)
+        def load_animation():
+            animation = Animation.Animation()
+            animation.load_from_file(filename,self.bones)
+            return animation
+
+        animation = dent.assets.getAsset(filename, load_animation, type_hint=Animation.Animation)
         self.action_controller.add_action(animation)
 
         self.last_unanimated_position = self.position
