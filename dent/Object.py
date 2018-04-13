@@ -20,14 +20,6 @@ MeshOptions = namedtuple("MeshOptions", ("has_bumpmap", "has_bones"))
 MeshDatum = namedtuple("MeshDatum", ("name", "options", "mesh" ))
 
 
-def getOptionNumber(meshOptions):
-    ans = 0
-    for i, v in enumerate(meshOptions):
-        if v:
-            ans += 2 ** i
-    return ans
-
-
 class Object(object):
 
     def __init__(
@@ -243,15 +235,13 @@ class Object(object):
             )
         self.shader["model"] = t
 
-        options = None
         if self.action_controller is not None:
             self.shader["bones"] = self.bone_transforms
+            self.shader["hasSkinning"] = 1
+        else:
+            self.shader["hasSkinning"] = 0
         for material in self.materials.values():
           material.set_uniforms(self.shader)
-          ## Set options
-          #if options != getOptionNumber(meshdatum.options):
-          #    options = getOptionNumber(meshdatum.options)
-          #    self.shader["options"] = options
           for mesh in self.meshes_per_material[material.name]:
             if mesh.name in self.renderIDs:
               self.shader.draw(gl.GL_TRIANGLES, self.renderIDs[mesh.name])
