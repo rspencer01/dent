@@ -8,12 +8,6 @@ import Shaders
 import transforms
 import OpenGL.GL as gl
 
-shader          = Shaders.getShader('general',instance=True)
-shader['colormap'] = Texture.COLORMAP_NUM
-billboardShader = Shaders.getShader('billboard',instance=True,geom=True)
-billboardShader['colormap'] = Texture.COLORMAP_NUM
-billboardShader['bumpmap'] = Texture.BUMPMAP_NUM
-makeBillboardShader = Shaders.getShader('makeBillboard',instance=True)
 
 class MultiObject(object):
   def __init__(
@@ -36,6 +30,13 @@ class MultiObject(object):
     self.numInstances = None
     self.frozen = False
     self.scale = scale
+
+    self.shader = Shaders.getShader('general',instance=True)
+    self.shader['colormap'] = Texture.COLORMAP_NUM
+    self.billboardShader = Shaders.getShader('billboard',instance=True,geom=True)
+    self.billboardShader['colormap'] = Texture.COLORMAP_NUM
+    self.billboardShader['bumpmap'] = Texture.BUMPMAP_NUM
+    self.makeBillboardShader = Shaders.getShader('makeBillboard',instance=True)
 
     self.loadFromScene(filename, self.scale)
 
@@ -110,17 +111,17 @@ class MultiObject(object):
     """If instanceBuffer is specified, uses that buffer for the instance data
     instead of the give instance information."""
     for data,indices,texture in self.meshes:
-      self.renderIDs.append(shader.setData(data,indices,self.instances))
+      self.renderIDs.append(self.shader.setData(data,indices,self.instances))
     self.billboardRenderID = billboardShader.setData(self.billboardMesh[0], self.billboardMesh[1],self.instances, instanceBuffer)
     self.frozen = True
 
   def render(self,offset,num=None):
-    shader.load()
+    self.shader.load()
     if num==None: num = len(self.instances)
     for mesh,renderID in zip(self.meshes,self.renderIDs):
       # Load texture
       mesh[2].load()
-      shader.draw(gl.GL_TRIANGLES,renderID,num,offset)
+      self.shader.draw(gl.GL_TRIANGLES,renderID,num,offset)
 
 
   def renderBillboards(self, offset, count=None):
