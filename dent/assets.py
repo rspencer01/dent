@@ -33,6 +33,7 @@ def loadFromFile(filename, type_hint=None):
             obj = type_hint._dent_asset_load(datastore)
             datastore.close()
             return obj
+
     try:
         obj = np.load(filename)
         logging.debug("Loaded object as numpy array")
