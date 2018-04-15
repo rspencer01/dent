@@ -21,7 +21,7 @@ def basic_animation(filename):
 
 class Animation(object):
   def __init__(self):
-    pass
+    self.cached_bone_values = {}
 
   def load_from_file(self,filename,bones):
     if filename[-5:] == '.yaml':
@@ -68,37 +68,40 @@ class Animation(object):
     if self._configuration['invert']:
       time = self._configuration['animation_frames'] - time - 1
 
-    bones = np.zeros((60,4,4), dtype=np.float32)
-    for i in xrange(60):
-      bones[i] = np.eye(4)
-      bones[i,:3,:3]*=0
-
-    def dfs(name, t, lastvalidoffset=None, nooffset=False):
-      bone = self.get_bone(name)
-      if bone:
-        position = bone.positions[time % len(bone.positions)]
-        rotation = bone.rotations[time % len(bone.rotations)]
-        if not nooffset:
-          t = transforms.translate2(*position).dot(t)
-        t = transforms.quaternion_matrix(rotation).T.dot(t)
-        bones[bone.id] = bone.offsetmatrix.T.dot(t)
-        lastvalidoffset = bone.offsetmatrix.T
-      else:
-        bones[bone.id] = lastvalidoffset.dot(t)
-      for i in self.get_bone(name).children:
-        dfs(i, t[:,:],lastvalidoffset)
-    if self._bones:
-      dfs('Hips', np.eye(4, dtype=np.float32), nooffset=not with_root_offset)
-    else:
+    if time not in self.cached_bone_values:
+      bones = np.zeros((60,4,4), dtype=np.float32)
       for i in xrange(60):
         bones[i] = np.eye(4)
-        bones[i][0][0] = np.cos(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
-        bones[i][2][2] = np.cos(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
-        bones[i][2][0] = -np.sin(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
-        bones[i][0][2] = np.sin(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
-        if with_root_offset:
-          bones[i][3,0:3] = np.array(self._configuration['end_position']) * float(time) / self._configuration['animation_frames']
-    return bones
+        bones[i,:3,:3]*=0
+
+      def dfs(name, t, lastvalidoffset=None, nooffset=False):
+        bone = self.get_bone(name)
+        if bone:
+          position = bone.positions[time % len(bone.positions)]
+          rotation = bone.rotations[time % len(bone.rotations)]
+          if not nooffset:
+            t = transforms.translate2(*position).dot(t)
+          t = transforms.quaternion_matrix(rotation).T.dot(t)
+          bones[bone.id] = bone.offsetmatrix.T.dot(t)
+          lastvalidoffset = bone.offsetmatrix.T
+        else:
+          bones[bone.id] = lastvalidoffset.dot(t)
+        for i in self.get_bone(name).children:
+          dfs(i, t[:,:],lastvalidoffset)
+      if self._bones:
+        dfs('Hips', np.eye(4, dtype=np.float32), nooffset=not with_root_offset)
+      else:
+        for i in xrange(60):
+          bones[i] = np.eye(4)
+          bones[i][0][0] = np.cos(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+          bones[i][2][2] = np.cos(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+          bones[i][2][0] = -np.sin(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+          bones[i][0][2] = np.sin(self._configuration['end_rotation'] * float(time) / self._configuration['animation_frames'])
+          if with_root_offset:
+            bones[i][3,0:3] = np.array(self._configuration['end_position']) * float(time) / self._configuration['animation_frames']
+
+      self.cached_bone_values[time] = bones
+    return self.cached_bone_values[time]
 
 
   def get_root_offset(self, time):
