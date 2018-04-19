@@ -32,6 +32,7 @@ logging.getLogger("pyassimp").setLevel(logging.INFO)
 import messaging
 import configuration
 import dent.graphics
+import dent.inputs
 
 windowHeight = 512
 windowWidth = 512
@@ -153,22 +154,6 @@ def mouse_handler(button, state, x, y):
         scene.camera.lockDistance += button - 3.5
 
 
-def glut_keyboard_handler(key, x, y):
-    messaging.add_message(messaging.Message("keyboard", (key)))
-
-
-def glut_keyboard_up_handler(key, x, y):
-    messaging.add_message(messaging.Message("keyboard_up", (key)))
-
-
-def glut_mouse_handler(button, state, x, y):
-    messaging.add_message(messaging.Message("mouse", (button, state, x, y)))
-
-
-def glut_mouse_motion_handler(x, y):
-    messaging.add_message(messaging.Message("mouse_motion", (x, y)))
-
-
 def game_start_handler(time):
     logging.info("Game start!")
     glut.glutTimerFunc(1000 / 60, glut_timer_handler, 60)
@@ -185,13 +170,8 @@ def userCommand():
 
 
 dent.graphics.initialise_graphics()
+dent.inputs.initialise_inputs()
 glut.glutDisplayFunc(display)
-if args.args.replay is None:
-    glut.glutMouseFunc(glut_mouse_handler)
-    glut.glutPassiveMotionFunc(glut_mouse_motion_handler)
-    glut.glutMotionFunc(glut_mouse_motion_handler)
-    glut.glutKeyboardFunc(glut_keyboard_handler)
-    glut.glutKeyboardUpFunc(glut_keyboard_up_handler)
 
 import Texture
 
