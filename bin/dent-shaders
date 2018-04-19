@@ -13,6 +13,6 @@ parser.add_argument("shader")
 
 args = parser.parse_args()
 
-source_code = dent.Shaders.ShaderFile(args.shader, None).getSource()
+source_code = dent.Shaders.ShaderFile(args.shader, None).read()
 
 print(highlight(source_code, get_lexer_by_name("glsl"), Terminal256Formatter()))

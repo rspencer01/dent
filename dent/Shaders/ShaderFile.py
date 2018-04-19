@@ -5,6 +5,16 @@ import OpenGL.GL as gl
 
 INCLUDE = -1
 
+SHADER_FILENAMES = {
+    gl.GL_FRAGMENT_SHADER: "fragment.shd",
+    gl.GL_GEOMETRY_SHADER: "geometry.shd",
+    gl.GL_TESS_CONTROL_SHADER: "tesscontrol.shd",
+    gl.GL_TESS_EVALUATION_SHADER: "tesseval.shd",
+    gl.GL_VERTEX_SHADER: "vertex.shd",
+}
+
+INCLUDE_MATCH_PATTERN = re.compile(r"#include\W(.+);")
+
 
 class ShaderCompileException(Exception):
 
@@ -25,14 +35,47 @@ class ShaderCompileException(Exception):
 
 
 class ShaderFile(object):
+    """A file-like object for accessing shader source code.
 
-    def __init__(self, name, type):
+    This object locates shader source, exposes a `read` function, much like a file that
+    returns the preprocessed code and preforms compilation to OpenGL programmes, ready
+    for linking to a shader.
+
+    Typical usage might be
+
+      >>> shader_file = ShaderFile('beautiful-shader', gl.GL_FRAGMENT_SHADER)
+      >>> shader_file.get_program()
+      1
+      >>> shader_file.read()
+      "#version 4.0\n in vec3 position;\n..."
+    """
+
+    def __init__(self, name, shader_type):
         self.name = name
-        self.type = type
+        self.shader_type = shader_type
         self.load_from_source()
+        self.uniforms = []
+        self.headers = []
+        self.code = []
+        self.program = None
 
     def get_source(self):
-        if self.type == INCLUDE:
+        """Searches for the unprocessed source code of this shader.
+
+        Locations searched are the following in this order:
+          * The name of the shader, as a single file, if its extension is `.shd`
+          * Under the `shaders` directory if this is an include fragment
+          * As a default dent include shader if this is an include fragment
+          * Under the `shaders` directory, as a directory of files
+          * As a default dent shader
+
+        Failing to find this shader program in any of the above locations, this
+        function will throw an `IOError`.
+        """
+        if os.path.isfile(self.name) and self.name[-4:] == ".shd":
+            return open(self.name).read()
+
+        if self.shader_type == INCLUDE:
             if os.path.isfile("shaders/{}".format(self.name)):
                 return open("shaders/{}".format(self.name)).read()
 
@@ -45,17 +88,7 @@ class ShaderFile(object):
 
             raise IOError("Shader '{}' not found".format(self.name))
 
-        suffix = {
-            gl.GL_FRAGMENT_SHADER: "fragment.shd",
-            gl.GL_GEOMETRY_SHADER: "geometry.shd",
-            gl.GL_TESS_CONTROL_SHADER: "tesscontrol.shd",
-            gl.GL_TESS_EVALUATION_SHADER: "tesseval.shd",
-            gl.GL_VERTEX_SHADER: "vertex.shd",
-        }[
-            self.type
-        ]
-        if os.path.isfile(self.name) and self.name[:-4] == ".shd":
-            return open(self.name).read()
+        suffix = SHADER_FILENAMES[self.shader_type]
 
         if os.path.isfile("shaders/{}/{}".format(self.name, suffix)):
             return open("shaders/{}/{}".format(self.name, suffix)).read()
@@ -70,18 +103,20 @@ class ShaderFile(object):
         raise IOError("Shader '{}' not found".format(self.name))
 
     def load_from_source(self):
+        """Loads the source code from the disk and performs all the preprocessing."""
         source = self.get_source()
-        p = re.compile(r"#include\W(.+);")
-        m = p.search(source)
-        while m:
-            included = ShaderFile(m.group(1), INCLUDE)
+        include_lines = INCLUDE_MATCH_PATTERN.search(source)
+        while include_lines:
+            included = ShaderFile(include_lines.group(1), INCLUDE)
             source = source.replace(
-                "#include {};".format(m.group(1)), included.getSource()
+                "#include {};".format(include_lines.group(1)), included.read()
             )
-            m = p.search(source)
+            include_lines = INCLUDE_MATCH_PATTERN.search(source)
+
         self.uniforms = []
         self.headers = []
         self.code = []
+
         headers = True
         for i in source.split("\n"):
             if "uniform" in i:
@@ -92,21 +127,27 @@ class ShaderFile(object):
             else:
                 self.code.append(i)
 
+        # Hack to make the elements unique
         self.uniforms = list(set(self.uniforms))
-        self.program = None
 
-    def getSource(self):
+    def read(self):
+        """Gets the processed source code as a string."""
+        self.load_from_source()
         return "\n".join(self.headers + self.uniforms + self.code)
 
-    def getProgram(self):
+    def get_program(self):
+        """Returns the OpenGL program object compiled from this source file.
+
+        This function should be the main interface to the ShaderFile class."""
+
         if self.program is None:
-            self.program = gl.glCreateShader(self.type)
-            gl.glShaderSource(self.program, self.getSource())
+            self.program = gl.glCreateShader(self.shader_type)
+            gl.glShaderSource(self.program, self.read())
             gl.glCompileShader(self.program)
             # Find compile errors
             if gl.glGetShaderiv(self.program, gl.GL_COMPILE_STATUS) != gl.GL_TRUE:
                 raise ShaderCompileException(
-                    (gl.glGetShaderInfoLog(self.program), self.getSource())
+                    (gl.glGetShaderInfoLog(self.program), self.read())
                 )
 
         return self.program

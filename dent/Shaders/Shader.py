@@ -40,7 +40,7 @@ class Shader(object):
     def addProgram(self, type, source):
         """Creates a shader, compiles the given shader source and attaches it
     to this program."""
-        gl.glAttachShader(self.program, source.getProgram())
+        gl.glAttachShader(self.program, source.get_program())
 
     def build(self):
         # Link!  Everything else is done in addProgram
