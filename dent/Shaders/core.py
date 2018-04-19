@@ -63,13 +63,3 @@ def setUniform(name, value):
 def reload_all():
     for shader in shaders.values():
         shader.reload()
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Magrathea shader source inspector.")
-    parser.add_argument("file", help="source file")
-    args = parser.parse_args()
-
-    print(getShaderFile(args.file, None).getSource())
