@@ -19,23 +19,12 @@ files (and assets etc.) as it is meant to be.
 The best way to learn about it is by `examples
 <https://www.github.com/rspencer01/model-viewer/>`_ and tutorials.
 
-Tutorials
----------
-
-* :doc:`tutorial-shadertoy`
-
-Indices and tables
-==================
-
 .. toctree::
    :maxdepth: 2
+   :hidden:
 
    render-pipelines
    tutorial-shadertoy
    shaders
    animations
    messaging
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
