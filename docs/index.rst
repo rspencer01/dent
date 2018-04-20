@@ -6,16 +6,6 @@
 Dent: OpenGL game library
 =========================
 
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-
-   render-pipelines
-   tutorial-shadertoy
-   shaders
-   animations
-   messaging
-
 Dent is a simple OpenGL 4 game engine written in Python. Dent has support
 for asset importing, shader management and event handling, as well as a
 plug-and-play deferred rendering pipeline.
@@ -36,6 +26,15 @@ Tutorials
 
 Indices and tables
 ==================
+
+.. toctree::
+   :maxdepth: 2
+
+   render-pipelines
+   tutorial-shadertoy
+   shaders
+   animations
+   messaging
 
 * :ref:`genindex`
 * :ref:`modindex`
