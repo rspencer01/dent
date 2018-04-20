@@ -1,9 +1,17 @@
 import OpenGL.GL as gl
 import ctypes
 from Shader import Shader
+import logging
 
 
 class TransformFeedbackShader(Shader):
+
+    def __init__(self, name, vertex, geometry=None):
+        super(TransformFeedbackShader, self).__init__(name)
+        self._sources[gl.GL_VERTEX_SHADER] = vertex
+        if geometry:
+            self._sources[gl.GL_GEOMETRY_SHADER] = geometry
+        self.program = gl.glCreateProgram()
 
     def addOutput(self, name):
         """Registers an output of the transform shader."""
@@ -18,7 +26,7 @@ class TransformFeedbackShader(Shader):
     def getOutputBufferObject(self, objectIndex, max_size):
         """Gets an output buffer for the given input object.
 
-    TODO Not sure about this here.  How should we be doing this better?"""
+        TODO Not sure about this here.  How should we be doing this better?"""
         tbo = gl.glGenBuffers(1)
 
         gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
@@ -36,7 +44,7 @@ class TransformFeedbackShader(Shader):
 
     def draw(self, type, objectIndex, tbo, count=0):
         """Starts a transform feedback draw.  Return the number of items actually
-    created (may differ from `num` due to geometry shaders)."""
+        created (may differ from `num` due to geometry shaders)."""
         self.load()
         self._setitems()
         gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
@@ -53,3 +61,16 @@ class TransformFeedbackShader(Shader):
         count = gl.glGetQueryObjectiv(query, gl.GL_QUERY_RESULT)
         gl.glDeleteQueries(1, [query])
         return count
+
+    def build(self):
+        """Builds the shader.
+
+        We need a custom shader build function because the trasform feedback shaders
+        require varyings to be set before the program is linked."""
+        logging.debug("Building shader {}".format(self.name))
+        for source in self._sources.values():
+            gl.glAttachShader(self.program, source.get_program())
+
+        gl.glLinkProgram(self.program)
+        if gl.glGetProgramiv(self.program, gl.GL_LINK_STATUS) != gl.GL_TRUE:
+            raise RuntimeError(gl.glGetProgramInfoLog(self.program))

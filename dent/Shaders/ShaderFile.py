@@ -20,7 +20,7 @@ class ShaderCompileException(Exception):
 
     def __init__(self, args):
         message, source = args
-        errp = re.compile(r"0\((.+?)\)(.*)")
+        errp = re.compile(r"0:([0-9]+).*: (.*)")
         m = errp.match(message)
         if not m or not source:
             Exception.__init__(self, message)
@@ -35,7 +35,7 @@ class ShaderCompileException(Exception):
 
 
 class ShaderFile(object):
-    """A file-like object for accessing shader source code.
+    """A file-like object for accessing shader source code and programs.
 
     This object locates shader source, exposes a `read` function, much like a file that
     returns the preprocessed code and preforms compilation to OpenGL programmes, ready
@@ -43,11 +43,11 @@ class ShaderFile(object):
 
     Typical usage might be
 
-      >>> shader_file = ShaderFile('beautiful-shader', gl.GL_FRAGMENT_SHADER)
-      >>> shader_file.get_program()
-      1
-      >>> shader_file.read()
-      "#version 4.0\n in vec3 position;\n..."
+    >>> shader_file = ShaderFile('beautiful-shader', gl.GL_FRAGMENT_SHADER)
+    >>> shader_file.get_program()
+    1
+    >>> shader_file.read()
+    "#version 4.0\\n in vec3 position;\\n..."
     """
 
     def __init__(self, name, shader_type):
@@ -57,6 +57,7 @@ class ShaderFile(object):
         self.uniforms = []
         self.headers = []
         self.code = []
+        self.timestamp = -1
         self.program = None
 
     def get_source(self):
@@ -71,40 +72,46 @@ class ShaderFile(object):
 
         Failing to find this shader program in any of the above locations, this
         function will throw an `IOError`.
+
+        This function returns a tuple, the first element being the source of the
+        shader, and the second a weakly increasing timestamp for when the source
+        was last edited.
         """
         if os.path.isfile(self.name) and self.name[-4:] == ".shd":
-            return open(self.name).read()
+            return open(self.name).read(), os.path.getmtime(self.name)
 
         if self.shader_type == INCLUDE:
-            if os.path.isfile("shaders/{}".format(self.name)):
-                return open("shaders/{}".format(self.name)).read()
+            filename = "shaders/{}".format(self.name)
+            if os.path.isfile(filename):
+                return open(filename).read(), os.path.getmtime(filename)
 
             if pkg_resources.resource_exists(
                 __name__, "default_shaders/includes/{}".format(self.name)
             ):
                 return pkg_resources.resource_string(
                     __name__, "default_shaders/includes/{}".format(self.name)
-                )
+                ), 0
 
             raise IOError("Shader '{}' not found".format(self.name))
 
         suffix = SHADER_FILENAMES[self.shader_type]
+        filename = "shaders/{}/{}".format(self.name, suffix)
 
-        if os.path.isfile("shaders/{}/{}".format(self.name, suffix)):
-            return open("shaders/{}/{}".format(self.name, suffix)).read()
+        if os.path.isfile(filename):
+            return open(filename).read(), os.path.getmtime(filename)
 
         if pkg_resources.resource_exists(
             __name__, "default_shaders/{}/{}".format(self.name, suffix)
         ):
             return pkg_resources.resource_string(
                 __name__, "default_shaders/{}/{}".format(self.name, suffix)
-            )
+            ), 0
 
         raise IOError("Shader '{}' not found".format(self.name))
 
     def load_from_source(self):
         """Loads the source code from the disk and performs all the preprocessing."""
-        source = self.get_source()
+        source = self.get_source()[0]
         include_lines = INCLUDE_MATCH_PATTERN.search(source)
         while include_lines:
             included = ShaderFile(include_lines.group(1), INCLUDE)
@@ -139,9 +146,12 @@ class ShaderFile(object):
         """Returns the OpenGL program object compiled from this source file.
 
         This function should be the main interface to the ShaderFile class."""
+        if self.is_stale():
+            self.program = None
 
         if self.program is None:
             self.program = gl.glCreateShader(self.shader_type)
+            self.timestamp = self.get_source()[1]
             gl.glShaderSource(self.program, self.read())
             gl.glCompileShader(self.program)
             # Find compile errors
@@ -151,3 +161,7 @@ class ShaderFile(object):
                 )
 
         return self.program
+
+    def is_stale(self):
+        """Checks if the source code on the disk has changed since we last read it."""
+        return self.get_source()[1] > self.timestamp

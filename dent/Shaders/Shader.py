@@ -3,6 +3,7 @@ from collections import namedtuple
 import ctypes
 import numpy as np
 import logging
+import ShaderFile
 
 currentShader = None
 
@@ -27,7 +28,9 @@ class Shader(object):
         # Who are we
         self.name = name
         # What do we stand for?
-        self.program = gl.glCreateProgram()
+        self.program = None
+        # The constituent sources
+        self._sources = {}
         # Where the uniform variables live
         self.locations = {}
         # The info for the objects of this shader
@@ -36,17 +39,40 @@ class Shader(object):
         self.warned = set()
         # Uniforms that are still to be set
         self.unsetUniforms = {}
-
-    def addProgram(self, type, source):
-        """Creates a shader, compiles the given shader source and attaches it
-    to this program."""
-        gl.glAttachShader(self.program, source.get_program())
+        # Uniforms that are set.  A copy is kept for smooth reloading
+        self.uniforms = {}
 
     def build(self):
-        # Link!  Everything else is done in addProgram
-        gl.glLinkProgram(self.program)
-        if gl.glGetProgramiv(self.program, gl.GL_LINK_STATUS) != gl.GL_TRUE:
-            raise RuntimeError(gl.glGetProgramInfoLog(self.program))
+        for i in self._sources.values():
+          if i.is_stale():
+            break
+        else:
+          return
+        
+        logging.debug("Building shader {}".format(self.name))
+        old_program = None
+        if self.program:
+          old_program = self.program
+        try:
+          self.program = gl.glCreateProgram()
+
+          for source in self._sources.values():
+              gl.glAttachShader(self.program, source.get_program())
+
+          gl.glLinkProgram(self.program)
+          if gl.glGetProgramiv(self.program, gl.GL_LINK_STATUS) != gl.GL_TRUE:
+              raise RuntimeError(gl.glGetProgramInfoLog(self.program))
+        except ShaderFile.ShaderCompileException as e:
+          print e
+          if old_program is None:
+            raise RuntimeError()
+          else:
+            gl.glDeleteProgram(self.program)
+            self.program = old_program
+            old_program = None
+
+        if old_program:
+          gl.glDeleteProgram(self.program)
 
     def load(self):
         # Check if we are loaded already.  If not do so.
@@ -153,6 +179,7 @@ class Shader(object):
         """Blits all the lazyloaded uniforms to the GPU.    """
         for i, v in self.unsetUniforms.items():
             self._setitem(i, v)
+        self.uniforms.update(self.unsetUniforms)
         self.unsetUniforms = {}
 
     def draw(self, type, objectIndex, num=0):
