@@ -101,7 +101,7 @@ def timer_handler(fps):
 
 
 def mouse_motion_handler(x, y):
-    if x != windowWidth / 2 or y != windowHeight / 2 and hold_mouse:
+    if (x != windowWidth / 2 or y != windowHeight / 2) and hold_mouse:
         glut.glutWarpPointer(windowWidth / 2, windowHeight / 2)
 
 
