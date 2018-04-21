@@ -62,4 +62,4 @@ def setUniform(name, value):
 
 def reload_all():
     for shader in shaders.values():
-        shader.reload()
+        shader.build()

@@ -43,12 +43,15 @@ class Shader(object):
         self.uniforms = {}
 
     def build(self):
+        global currentShader
         for i in self._sources.values():
           if i.is_stale():
             break
         else:
           return
-        
+        for i in self._sources.values():
+          i.timestamp = -1
+
         logging.debug("Building shader {}".format(self.name))
         old_program = None
         if self.program:
@@ -72,7 +75,12 @@ class Shader(object):
             old_program = None
 
         if old_program:
-          gl.glDeleteProgram(self.program)
+          gl.glDeleteProgram(old_program)
+        if currentShader == self:
+          currentShader = None
+        self.uniforms.update(self.unsetUniforms)
+        self.unsetUniforms = self.uniforms.copy()
+        self.locations = {}
 
     def load(self):
         # Check if we are loaded already.  If not do so.
