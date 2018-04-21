@@ -21,6 +21,12 @@ MeshDatum = namedtuple("MeshDatum", ("name", "options", "mesh"))
 
 
 class Object(object):
+    """A typical in-game object.
+
+    Args:
+        filename (str): Path to the object file (``.FBX``, ``.obj`` etc.)
+        shader_name (str): The name of the shader to use to render this object
+    """
 
     def __init__(
         self,
@@ -32,6 +38,7 @@ class Object(object):
         angle=0.,
         will_animate=False,
         daemon=True,
+        shader_name="general-noninstanced",
     ):
 
         if name == None:
@@ -63,7 +70,7 @@ class Object(object):
         self.angle = angle
         self.daemon = daemon
 
-        self.shader = Shaders.getShader("general-noninstanced")
+        self.shader = Shaders.getShader(shader_name)
         self.shader["colormap"] = Texture.COLORMAP_NUM
         self.shader["normalmap"] = Texture.NORMALMAP_NUM
         self.shader["specularmap"] = Texture.SPECULARMAP_NUM
@@ -241,10 +248,10 @@ class Object(object):
         else:
             self.shader["hasSkinning"] = 0
         for material in self.materials.values():
-          material.set_uniforms(self.shader)
-          for mesh in self.meshes_per_material[material.name]:
-            if mesh.name in self.renderIDs:
-              self.shader.draw(gl.GL_TRIANGLES, self.renderIDs[mesh.name])
+            material.set_uniforms(self.shader)
+            for mesh in self.meshes_per_material[material.name]:
+                if mesh.name in self.renderIDs:
+                    self.shader.draw(gl.GL_TRIANGLES, self.renderIDs[mesh.name])
 
     def add_animation(self, filename):
         if self.action_controller is None:
@@ -252,10 +259,12 @@ class Object(object):
 
         def load_animation():
             animation = Animation.Animation()
-            animation.load_from_file(filename,self.bones)
+            animation.load_from_file(filename, self.bones)
             return animation
 
-        animation = dent.assets.getAsset(filename, load_animation, type_hint=Animation.Animation)
+        animation = dent.assets.getAsset(
+            filename, load_animation, type_hint=Animation.Animation
+        )
         self.action_controller.add_action(animation)
 
         self.last_unanimated_position = self.position
