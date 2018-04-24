@@ -24,6 +24,7 @@ def get_texture_filename(material, texture_type, directory):
         pyassimp.material.aiTextureType_DIFFUSE: "{}.diff.png",
         pyassimp.material.aiTextureType_NORMALS: "{}.norm.png",
         pyassimp.material.aiTextureType_SPECULAR: "{}.spec.png",
+        pyassimp.material.aiTextureType_SHININESS: "{}.meta.png",
     }
     material_name = material.properties[("name", 0)]
 
@@ -51,9 +52,11 @@ class Material(object):
         self.diffuse_texture_file = None
         self.normal_texture_file = None
         self.specular_texture_file = None
+        self.metallic_texture_file = None
         self.diffuse_texture = None
         self.normal_texture = None
         self.specular_texture = None
+        self.metallic_texture = None
         self.material_diffuse_color = None
 
     def set_uniforms(self, shader):
@@ -61,6 +64,7 @@ class Material(object):
         self.diffuse_texture.load()
         self.normal_texture.load()
         self.specular_texture.load()
+        self.metallic_texture.load()
 
     def load_textures(self):
         if self.diffuse_texture_file:
@@ -88,6 +92,15 @@ class Material(object):
             self.specular_texture = dent.Texture.getBlackTexture()
             self.specular_texture.textureType = dent.Texture.SPECULARMAP
 
+        if self.metallic_texture_file:
+            self.metallic_texture = dent.TextureManager.get_texture(
+                os.path.join(self.directory, self.metallic_texture_file),
+                dent.Texture.METALLICMAP,
+            )
+        else:
+            self.metallic_texture = dent.Texture.getBlackTexture()
+            self.metallic_texture.textureType = dent.Texture.METALLICMAP
+
     def load_from_assimp(self, assimp_material, directory):
         # Load the texture filenames
         self.diffuse_texture_file = get_texture_filename(
@@ -100,6 +113,9 @@ class Material(object):
         )
         self.specular_texture_file = get_texture_filename(
             assimp_material, pyassimp.material.aiTextureType_SPECULAR, directory
+        )
+        self.metallic_texture_file = get_texture_filename(
+            assimp_material, pyassimp.material.aiTextureType_SHININESS, directory
         )
         self.material_diffuse_color = np.array(
             assimp_material.properties[("diffuse", 0)]
@@ -120,6 +136,7 @@ class Material(object):
         material.diffuse_texture_file = config["diffuse_texture_file"]
         material.normal_texture_file = config["normal_texture_file"]
         material.specular_texture_file = config["specular_texture_file"]
+        material.metallic_texture_file = config["metallic_texture_file"]
         material.load_textures()
 
         return material
@@ -135,6 +152,7 @@ class Material(object):
                     "diffuse_texture_file": self.diffuse_texture_file,
                     "normal_texture_file": self.normal_texture_file,
                     "specular_texture_file": self.specular_texture_file,
+                    "metallic_texture_file": self.metallic_texture_file,
                 }
             )
         )
