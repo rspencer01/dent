@@ -10,7 +10,7 @@ if not os.path.exists("./_assets"):
 
 
 def getInternalAssetID(assetID):
-    return hashlib.sha256(repr(assetID)).hexdigest()[:16]
+    return hashlib.sha256(str(assetID)).hexdigest()[:16]
 
 
 def getFilename(assetID):
