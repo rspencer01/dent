@@ -281,6 +281,7 @@ class Texture(object):
 whiteTexture = None
 blackTexture = None
 blueTexture = None
+constantNormalTexture = None
 
 
 def getWhiteTexture():
@@ -305,3 +306,10 @@ def getBlueTexture():
         blueTexture = Texture(NORMALMAP)
         blueTexture.loadData(np.array([[[0, 0, 1, 1]]], dtype=np.float32))
     return blueTexture
+
+def getConstantNormalTexture():
+    global constantNormalTexture
+    if constantNormalTexture is None:
+        constantNormalTexture = Texture(NORMALMAP)
+        constantNormalTexture.loadData(np.array([[[0.5, 0.5, 1, 1]]], dtype=np.float32))
+    return constantNormalTexture

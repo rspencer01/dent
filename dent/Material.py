@@ -59,8 +59,7 @@ class Material(object):
     def set_uniforms(self, shader):
         shader["diffuse_tint"] = self.material_diffuse_color
         self.diffuse_texture.load()
-        if self.normal_texture:
-            self.normal_texture.load()
+        self.normal_texture.load()
         self.specular_texture.load()
 
     def load_textures(self):
@@ -77,6 +76,9 @@ class Material(object):
                 os.path.join(self.directory, self.normal_texture_file),
                 dent.Texture.NORMALMAP,
             )
+        else:
+            self.normal_texture = dent.Texture.getConstantNormalTexture()
+
         if self.specular_texture_file:
             self.specular_texture = dent.TextureManager.get_texture(
                 os.path.join(self.directory, self.specular_texture_file),
