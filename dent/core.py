@@ -33,6 +33,7 @@ import messaging
 import configuration
 import dent.graphics
 import dent.inputs
+import dent.debug
 
 windowHeight = 512
 windowWidth = 512
@@ -171,6 +172,7 @@ def userCommand():
 
 dent.graphics.initialise_graphics()
 dent.inputs.initialise_inputs()
+dent.debug.initialise_debug()
 glut.glutDisplayFunc(display)
 
 import Texture
