@@ -71,10 +71,6 @@ class Object(object):
         self.daemon = daemon
 
         self.shader = Shaders.getShader(shader_name)
-        self.shader["colormap"] = Texture.COLORMAP_NUM
-        self.shader["normalmap"] = Texture.NORMALMAP_NUM
-        self.shader["specularmap"] = Texture.SPECULARMAP_NUM
-        self.shader["metallicmap"] = Texture.METALLICMAP_NUM
 
         self.bounding_box_min = np.zeros(3, dtype=float) + 1e10
         self.bounding_box_max = np.zeros(3, dtype=float) - 1e10
