@@ -145,8 +145,8 @@ class Material(object):
         )
         self.diffuse_tint = np.array(assimp_material.properties[("diffuse", 0)])
         self.specular_tint = np.linalg.norm(assimp_material.properties[("specular", 0)])
-        self.metallic_tint = 1
-        self.roughness_tint = 1
+        self.metallic_tint = 1.
+        self.roughness_tint = 1.
 
         self.name = assimp_material.properties[("name", 0)]
         self.directory = directory
