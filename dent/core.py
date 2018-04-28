@@ -39,7 +39,6 @@ windowHeight = 512
 windowWidth = 512
 frametime = 0.
 lastframe = time.time()
-hold_mouse = True
 trianglesQuery = None
 frametimes = [0 for _ in xrange(200)]
 frametimecount = 0
@@ -101,9 +100,6 @@ def timer_handler(fps):
     glut.glutTimerFunc(1000 / fps, glut_timer_handler, fps)
 
 
-def mouse_motion_handler(x, y):
-    if (x != windowWidth / 2 or y != windowHeight / 2) and hold_mouse:
-        glut.glutWarpPointer(windowWidth / 2, windowHeight / 2)
 
 
 def reshape_handler(width, height):
@@ -116,7 +112,7 @@ def reshape_handler(width, height):
 
 
 def keyboard_handler(key):
-    global hold_mouse, scene
+    global scene
     if key == "\033":
         if args.args.replay is None:
             messaging.save_messages()
@@ -141,11 +137,11 @@ def keyboard_handler(key):
                 break
 
     if key == "r":
-        if hold_mouse:
+        if dent.inputs.hold_mouse:
             glut.glutSetCursor(glut.GLUT_CURSOR_INHERIT)
         else:
             glut.glutSetCursor(glut.GLUT_CURSOR_NONE)
-        hold_mouse = not hold_mouse
+        dent.inputs.hold_mouse = not dent.inputs.hold_mouse
     if key == "?":
         print(open("help").read())
 
@@ -185,7 +181,6 @@ scenes = [scene() for scene in game_scenes.__scenes__]
 scene = [i for i in scenes if type(i) == game_scenes.__starting_scene__][0]
 
 messaging.add_handler("mouse", mouse_handler)
-messaging.add_handler("mouse_motion", mouse_motion_handler)
 messaging.add_handler("keyboard", keyboard_handler)
 messaging.add_handler("timer", timer_handler)
 messaging.add_handler("game_start", game_start_handler)

@@ -2,6 +2,7 @@ import numpy as np
 import transforms
 import messaging
 import dent.keyboard
+import dent.inputs
 from Shaders import *
 
 class Camera(object):
@@ -121,8 +122,8 @@ class MouseControlledCamera(Camera):
 
 
   def mouse_motion_handler(self, x, y):
-    if x != self.windowsize[0]/2 or \
-       y != self.windowsize[1]/2:
+    if (x != self.windowsize[0]/2 or \
+        y != self.windowsize[1]/2) and dent.inputs.hold_mouse:
       self.rotUpDown(0.01*(y-self.windowsize[1]/2.))
       self.rotLeftRight(0.01*(x-self.windowsize[0]/2.))
 
