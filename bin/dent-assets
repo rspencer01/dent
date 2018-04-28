@@ -3,26 +3,159 @@
 import argparse
 import dent.assets
 import os
+import sys
 import shutil
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('action',
-    choices=['list', 'clean'],
-    default='list',
-    nargs='?',
-    const='list')
+parser.add_argument(
+    "action",
+    choices=["inspect", "clean"],
+    default="inspect",
+    nargs="?",
+    const="inspect",
+)
 
 args = parser.parse_args()
 
-if args.action == 'list':
-  print "{: <40.40} {: <16} {: >9} {}".format("Name", "ID", "Size (kb)", "Type")
-  for asset in dent.assets.getAllAssetIds():
-    print "{: <40.40} {: <16} {: >9,} {}".format(
-        dent.assets.getAssetName(asset),
-        asset,
-        os.path.getsize(dent.assets.getFilename(asset))/1024,
-        dent.assets.get_asset_type(asset)
+if args.action == "clean":
+    shutil.rmtree("./_assets")
+    sys.exit()
+
+
+import npyscreen, curses
+import dent.Material
+import dent.Texture
+
+
+class asset_grid(npyscreen.MultiLineAction):
+
+    def display_value(self, vl):
+        if len(vl[0]) > 40:
+            vl[0] = vl[0][:37] + "..."
+        return "{:40} {:16} {:10} {:10}".format(*vl)
+
+    def actionHighlighted(self, act_on_this, key_press):
+        p = self.parentApp.switchForm("INSPECT")
+
+        asset_type = None
+        if act_on_this[2] == "Material":
+            asset_type = dent.Material.Material
+        if act_on_this[2] == "Texture":
+            asset_type = dent.Texture.Texture
+
+        self.parentApp.getForm("INSPECT").value = [
+            dent.assets.getAsset(act_on_this[0], type_hint=asset_type)
+        ]
+        self.parentApp.getForm("INSPECT").toexit = False
+
+
+class asset_list_form(npyscreen.FormBaseNew):
+
+    def create(self):
+        self.assetlist = self.add(
+            asset_grid,
+            name="Assets",
+            select_whole_line=True,
+            default_column_number=4,
+            scroll_exit=True,
+            values=[
+                [
+                    dent.assets.getAssetName(asset),
+                    asset,
+                    dent.assets.get_asset_type(asset),
+                    os.path.getsize(dent.assets.getFilename(asset)) / 1024,
+                ]
+                for asset in dent.assets.getAllAssetIds()
+            ],
+            col_titles=["Name", "Asset ID", "Type", "Size (kb)"],
         )
-elif args.action == 'clean':
-  shutil.rmtree('./_assets')
+        self.assetlist.parentForm = self
+        self.assetlist.parentApp = self.parentApp
+
+
+class inspection_row(npyscreen.AnnotateTextboxBase):
+    ANNOTATE_WIDTH = 30
+
+    def display_value(self, v):
+        return str(v[1])
+
+    def getAnnotationAndColor(self):
+        if self.value[0][0] == "_":
+            return (self.value[0], "WARNING")
+
+        if callable(self.value[1]):
+            return (self.value[0], "NO_EDIT")
+
+        return (self.value[0], "LABEL")
+
+
+class inspection_table(npyscreen.MultiLineAction):
+    _contained_widgets = inspection_row
+
+    def display_value(self, vl):
+        return vl
+
+    def actionHighlighted(self, act_on_this, key_press):
+        self.parent.parentApp.switchForm("INSPECT")
+
+        self.parent.parentApp.getForm("INSPECT").value.append(act_on_this[1])
+        self.parent.parentApp.getForm("INSPECT").toexit = False
+
+
+class object_inspector(npyscreen.Form):
+
+    def create(self):
+        self.type = self.add(npyscreen.FixedText, name=None, color="STANDOUT")
+        self.doc = self.add(npyscreen.FixedText, name=None)
+        self.add(npyscreen.FixedText)
+        self.values = self.add(
+            inspection_table, scroll_exit=True, select_whole_line=True, max_height=20
+        )
+        self.add_handlers({curses.ascii.ESC: self.prev})
+
+    def prev(self):
+        if self.value == []:
+            self.parentApp.switchFormPrevious()
+        else:
+            self.value.pop()
+            self.beforeEditing()
+
+    def beforeEditing(self):
+        if self.value == []:
+            self.parentApp.switchFormPrevious()
+            return
+        val = self.value[-1]
+        self.name = str(val)
+        self.doc.value = val.__doc__.split("\n")[0] if val.__doc__ else ""
+        self.type.value = str(type(val).__name__)
+        self.values.values = []
+        builtins = []
+        for i in dir(val):
+            if i[:2] != "__" or i[-2:] != "__":
+                self.values.values.append((i, getattr(val, i)))
+            else:
+                builtins.append(i)
+
+    def afterEditing(self):
+        if self.toexit:
+            self.prev()
+        else:
+            self.toexit = True
+
+
+#        self.parentApp.switchFormPrevious()
+
+
+class application(npyscreen.NPSAppManaged):
+
+    def __init__(self):
+        super(application, self).__init__()
+        self.to_inspect = None
+
+    def onStart(self):
+        self.addForm("MAIN", asset_list_form, name="Asset List")
+        self.addForm("INSPECT", object_inspector, name="Object Inspector")
+
+
+application().run()
