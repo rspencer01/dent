@@ -28,3 +28,4 @@ The best way to learn about it is by `examples
    shaders
    animations
    messaging
+   materials

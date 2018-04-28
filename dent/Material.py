@@ -10,6 +10,13 @@ import numpy as np
 import dent.Texture
 import dent.TextureManager
 
+_DIFFUSE_TEXTURE = pyassimp.material.aiTextureType_DIFFUSE
+_NORMAL_TEXTURE = pyassimp.material.aiTextureType_NORMALS
+_HEIGHT_TEXTURE = pyassimp.material.aiTextureType_HEIGHT
+_SPECULAR_TEXTURE = pyassimp.material.aiTextureType_SPECULAR
+_ROUGNESS_TEXTURE = "__ROUGHNESS_TEXTURE__"
+_METALLIC_TEXTURE = "__METALLIC_TEXTURE__"
+
 
 def get_texture_filename(material, texture_type, directory):
     """Finds the filepath of a texture given the assimp material and the directory.
@@ -21,19 +28,20 @@ def get_texture_filename(material, texture_type, directory):
     If no suitable filename can be found, None is returned.
     """
     dent_formats = {
-        pyassimp.material.aiTextureType_DIFFUSE: "{}.diff.png",
-        pyassimp.material.aiTextureType_NORMALS: "{}.norm.png",
-        pyassimp.material.aiTextureType_SPECULAR: "{}.spec.png",
-        pyassimp.material.aiTextureType_SHININESS: "{}.meta.png",
+        _DIFFUSE_TEXTURE: "{}.diff.png",
+        _NORMAL_TEXTURE: "{}.norm.png",
+        _HEIGHT_TEXTURE: "{}.norm.png",
+        _SPECULAR_TEXTURE: "{}.spec.png",
+        _ROUGNESS_TEXTURE: "{}.roug.png",
+        _METALLIC_TEXTURE: "{}.meta.png",
     }
     material_name = material.properties[("name", 0)]
 
-    if texture_type in dent_formats:
-        filename = os.path.join(
-            directory, dent_formats[texture_type].format(material_name)
-        )
-        if os.path.exists(filename):
-            return dent_formats[texture_type].format(material_name)
+    override_filename = os.path.join(
+        directory, dent_formats[texture_type].format(material_name)
+    )
+    if os.path.exists(override_filename):
+        return dent_formats[texture_type].format(material_name)
 
     if ("file", texture_type) in material.properties:
         filename = os.path.join(directory, material.properties[("file", texture_type)])
@@ -119,26 +127,26 @@ class Material(object):
     def load_from_assimp(self, assimp_material, directory):
         # Load the texture filenames
         self.diffuse_texture_file = get_texture_filename(
-            assimp_material, pyassimp.material.aiTextureType_DIFFUSE, directory
+            assimp_material, _DIFFUSE_TEXTURE, directory
         )
         self.normal_texture_file = get_texture_filename(
-            assimp_material, pyassimp.material.aiTextureType_NORMALS, directory
+            assimp_material, _NORMAL_TEXTURE, directory
         ) or get_texture_filename(
-            assimp_material, pyassimp.material.aiTextureType_HEIGHT, directory
+            assimp_material, _HEIGHT_TEXTURE, directory
         )
         self.specular_texture_file = get_texture_filename(
-            assimp_material, pyassimp.material.aiTextureType_SPECULAR, directory
+            assimp_material, _SPECULAR_TEXTURE, directory
         )
         self.metallic_texture_file = get_texture_filename(
-            assimp_material, pyassimp.material.aiTextureType_SHININESS, directory
+            assimp_material, _METALLIC_TEXTURE, directory
         )
         self.roughness_texture_file = get_texture_filename(
-            assimp_material, pyassimp.material.aiTextureType_SHININESS, directory
+            assimp_material, _ROUGNESS_TEXTURE, directory
         )
         self.diffuse_tint = np.array(assimp_material.properties[("diffuse", 0)])
         self.specular_tint = np.linalg.norm(assimp_material.properties[("specular", 0)])
-        self.metallic_tint = float(assimp_material.properties[("shininess", 0)])
-        self.roughness_tint = self.specular_tint
+        self.metallic_tint = 1
+        self.roughness_tint = 1
 
         self.name = assimp_material.properties[("name", 0)]
         self.directory = directory
