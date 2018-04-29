@@ -1,15 +1,13 @@
-from PIL import Image
-import tarfile
 import StringIO
-import OpenGL.GL as gl
-import dent.args
-import yaml
-import dent.assets
-import dent.taskQueue
 import logging
+import sys
+import tarfile
+
+from PIL import Image
+import OpenGL.GL as gl
 import numpy as np
 import scipy.ndimage
-import sys
+import yaml
 
 HEIGHTMAP = gl.GL_TEXTURE0
 HEIGHTMAP_NUM = 0
@@ -159,6 +157,13 @@ class Texture(object):
             self.makeMipmap()
 
     def makeMipmap(self):
+        """Constructs all the mipmap levels for the texture.
+
+        This invokes a GPU-based computation of all mipmap levels, and should
+        be invoked, for example, when the texture has been rendered to.
+
+        However, it does invoke a substantial time penalty, and so should not
+        be used if mip levels will not be needed.  """
         self.load()
         gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
 
@@ -224,17 +229,16 @@ class Texture(object):
             f1 = 1 if f1 > 0.5 else 0
             f2 = 1 if f2 > 0.5 else 0
 
-        r = np.interp(
-            f1,
-            [0, 1],
-            [
-                np.interp(
-                    f2,
+        # fmt: off
+        r = np.interp(f1, [0, 1], [
+                np.interp(f2,
                     [0, 1],
-                    [self._data[int(y), int(x)], self._data[int(y + 1), int(x)]],
+                    [
+                      self._data[int(y), int(x)],
+                      self._data[int(y + 1), int(x)],
+                    ],
                 ),
-                np.interp(
-                    f2,
+                np.interp(f2,
                     [0, 1],
                     [
                         self._data[int(y), int(x + 1)],
@@ -243,6 +247,7 @@ class Texture(object):
                 ),
             ],
         )
+        #fmt: on
         return r
 
     def __del__(self):
@@ -251,14 +256,14 @@ class Texture(object):
 
     @staticmethod
     def _dent_asset_load(datastore):
-      if 'config' not in datastore.getnames() or 'data' not in datastore.getnames():
-        raise IOError()
-      config = yaml.load(datastore.extractfile('config').read())
-      texture = Texture(config['type'],
-          internal_format=config['format'])
-      data = np.load(datastore.extractfile('data'))
-      texture.loadData(data)
-      return texture
+        if "config" not in datastore.getnames() or "data" not in datastore.getnames():
+            raise IOError()
+
+        config = yaml.load(datastore.extractfile("config").read())
+        texture = Texture(config["type"], internal_format=config["format"])
+        data = np.load(datastore.extractfile("data"))
+        texture.loadData(data)
+        return texture
 
     def _dent_asset_save(self, datastore):
         """Saves the image in this texture to a dent asset datastore."""
@@ -266,18 +271,17 @@ class Texture(object):
         np.save(data_buffer, self.getData())
         data_buffer.flush()
         data_buffer.seek(0)
-        data_header = tarfile.TarInfo('data')
+        data_header = tarfile.TarInfo("data")
         data_header.size = data_buffer.len
-        datastore.addfile(data_header,data_buffer)
+        datastore.addfile(data_header, data_buffer)
 
         config_buffer = StringIO.StringIO()
-        config_buffer.write(yaml.dump({
-          'type': self.textureType,
-          'format': self.internal_format,
-          }))
+        config_buffer.write(
+            yaml.dump({"type": self.textureType, "format": self.internal_format})
+        )
         config_buffer.flush()
         config_buffer.seek(0)
-        config_header = tarfile.TarInfo('config')
+        config_header = tarfile.TarInfo("config")
         config_header.size = config_buffer.len
         datastore.addfile(config_header, config_buffer)
 
@@ -310,6 +314,7 @@ def getBlueTexture():
         blueTexture = Texture(NORMALMAP)
         blueTexture.loadData(np.array([[[0, 0, 1, 1]]], dtype=np.float32))
     return blueTexture
+
 
 def getConstantNormalTexture():
     global constantNormalTexture

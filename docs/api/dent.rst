@@ -108,14 +108,6 @@ dent\.Scene module
     :undoc-members:
     :show-inheritance:
 
-dent\.Texture module
---------------------
-
-.. automodule:: dent.Texture
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 dent\.args module
 -----------------
 
