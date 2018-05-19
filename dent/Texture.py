@@ -3,8 +3,8 @@ import logging
 import sys
 import tarfile
 
-from PIL import Image
 import OpenGL.GL as gl
+import imageio
 import numpy as np
 import scipy.ndimage
 import yaml
@@ -55,6 +55,8 @@ METALLICMAP = gl.GL_TEXTURE21
 METALLICMAP_NUM = 21
 ROUGHNESSMAP = gl.GL_TEXTURE22
 ROUGHNESSMAP_NUM = 22
+IRRADIENCEMAP = gl.GL_TEXTURE23
+IRRADIENCEMAP_NUM = 23
 
 
 def initialise():
@@ -92,6 +94,8 @@ class Texture(object):
         self.textureType = type
         self.id = None
         self._data = None
+        self.width = 0
+        self.height = 0
         self.internal_format = internal_format
 
         self.initialise()
@@ -137,6 +141,9 @@ class Texture(object):
             width = data.shape[0]
         if height == None:
             height = data.shape[1]
+
+        self.width = width
+        self.height = height
 
         self.load()
         gl.glTexImage2D(
@@ -186,20 +193,26 @@ class Texture(object):
         self.loadData(data)
         del data
 
-    def loadFromImage(self, filename, daemon=True):
+    def loadFromImage(self, filename):
+        """Load this texture from an image file on disk.
 
-        teximag = Image.open(filename)
-        data = np.array(teximag.getdata()).astype(np.float32)
+        This uses the ``imageio`` library, and should therefore be able to
+        handle nearly any type of image file format.  The image is immediately
+        uploaded to the GPU to be ready for binding.
 
-        ## Make this a 4 color file
-        if (data.shape[1] != 4):
-            add = np.zeros((data.shape[0], 1), dtype=np.float32) + 256
-            data = np.append(data, add, axis=1)
+        Args:
+            filename (str): Path to the image file (``.bmp``, ``.png`` etc)
+        """
+        data = imageio.imread(filename).astype(float)
+        data = data.reshape((data.shape[1], data.shape[0], -1))
 
-        data = data.reshape(teximag.size[0], teximag.size[1], 4)
+        # Make this a rgba file
+        if (data.shape[2] != 4):
+            add = np.ones((data.shape[0], data.shape[1], 1)) * 255
+            data = np.append(data, add, axis=2)
 
-        logging.info("Uploading texture {} ({})".format(self.id, filename))
-        self.loadData(data / 256)
+        logging.info("Loaded texture %d from file %s", self.id, filename)
+        self.loadData(data / 255)
 
     def read(self, x, y, interpolate=True):
         assert self._data is not None
