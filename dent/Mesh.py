@@ -4,7 +4,7 @@ import numpy as np
 import dent.TextureManager
 import dent.Texture
 import yaml
-import StringIO
+import io
 import tarfile
 
 
@@ -68,7 +68,7 @@ class Mesh(object):
 
         tinvtrans = np.linalg.inv(self.transform).transpose()
         # Transform all the vertex positions.
-        for i in xrange(len(vertPos)):
+        for i in range(len(vertPos)):
             vertPos[i] = self.transform.dot(vertPos[i])
             vertNorm[i] = tinvtrans.dot(vertNorm[i])
         # Splice correctly, killing last components
@@ -102,7 +102,7 @@ class Mesh(object):
                     nn = parent.bones[bone.name][0]
                 for relationship in bone.weights:
                     bone_vec_number = 0
-                    for i in xrange(3):
+                    for i in range(3):
                         if self.data["weights"][relationship.vertexid][
                             bone_vec_number
                         ] > 0:
@@ -133,15 +133,14 @@ class Mesh(object):
 
     def _dent_asset_save(self, datastore):
         """Saves the image in this texture to a dent asset datastore."""
-        data_buffer = StringIO.StringIO()
+        data_buffer = io.BytesIO()
         np.save(data_buffer, self.data)
-        data_buffer.flush()
-        data_buffer.seek(0)
         data_header = tarfile.TarInfo("data")
-        data_header.size = data_buffer.len
+        data_header.size = data_buffer.getbuffer().nbytes
+        data_buffer.seek(0)
         datastore.addfile(data_header, data_buffer)
 
-        config_buffer = StringIO.StringIO()
+        config_buffer = io.BytesIO()
         config_buffer.write(
             yaml.dump(
                 {
@@ -152,10 +151,10 @@ class Mesh(object):
                     "indices": self.indices,
                     "material_name": self.material_name,
                 }
-            )
+            ).encode('ascii')
         )
         config_buffer.flush()
-        config_buffer.seek(0)
         config_header = tarfile.TarInfo("config")
-        config_header.size = config_buffer.len
+        config_header.size = config_buffer.getbuffer().nbytes
+        config_buffer.seek(0)
         datastore.addfile(config_header, config_buffer)

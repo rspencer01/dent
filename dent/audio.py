@@ -10,7 +10,7 @@ to_play = set()
 
 def stream_update(fps):
     global to_play
-    for i in streams.values():
+    for i in list(streams.values()):
         if i.get_state() == openal.AL_PLAYING:
             i.update()
     for n in to_play:

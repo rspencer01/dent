@@ -1,11 +1,11 @@
 import numpy as np
-import StringIO
+import io
 import tarfile
 import pyassimp
-import transforms
+from . import transforms
 from collections import namedtuple
 import yaml
-import cPickle as pickle
+import pickle as pickle
 
 Bone = namedtuple(
     "Bone",
@@ -53,7 +53,7 @@ class Animation(object):
         self._configuration["looping"] = self._configuration["looping"]
 
         self._bones = [
-            Bone(i, j[1], j[0], [], j[2], None, None) for i, j in bones.items()
+            Bone(i, j[1], j[0], [], j[2], None, None) for i, j in list(bones.items())
         ]
         self._bones = [
             Bone(
@@ -71,7 +71,7 @@ class Animation(object):
         self.read_from_assimp(self._animation)
 
     def read_from_assimp(self, assimp_animation):
-        for i in xrange(len(self._bones)):
+        for i in range(len(self._bones)):
             channel = self.get_channel(self._bones[i].name)
             if not channel:
                 positionkeys = np.zeros((int(self._animation.duration), 3))
@@ -91,7 +91,7 @@ class Animation(object):
 
         if time not in self.cached_bone_values:
             bones = np.zeros((60, 4, 4), dtype=np.float32)
-            for i in xrange(60):
+            for i in range(60):
                 bones[i] = np.eye(4)
                 bones[i, :3, :3] *= 0
 
@@ -113,7 +113,7 @@ class Animation(object):
             if self._bones:
                 dfs("Hips", np.eye(4, dtype=np.float32), nooffset=not with_root_offset)
             else:
-                for i in xrange(60):
+                for i in range(60):
                     bones[i] = np.eye(4)
                     bones[i][0][0] = np.cos(
                         self._configuration["end_rotation"]
@@ -219,7 +219,7 @@ class Animation(object):
 
     def _dent_asset_save(self, datastore):
         """Saves the image in this texture to a dent asset datastore."""
-        data_buffer = StringIO.StringIO()
+        data_buffer = io.StringIO()
         pickle.dump(
             {"configuration": self._configuration, "bones": self._bones}, data_buffer
         )

@@ -1,4 +1,4 @@
-import StringIO
+import io
 import logging
 import os
 import tarfile
@@ -48,7 +48,7 @@ def get_texture_filename(material, texture_type, directory):
         if os.path.exists(filename):
             return material.properties[("file", texture_type)]
 
-    logging.debug("Texture {} {} {} not found", directory, material_name, texture_type)
+    logging.debug("Texture {} {} {} not found".format(directory, material_name, texture_type))
 
 
 class Material(object):
@@ -157,7 +157,7 @@ class Material(object):
         if "config" not in datastore.getnames():
             raise IOError()
 
-        config = yaml.load(datastore.extractfile("config").read())
+        config = yaml.safe_load(datastore.extractfile("config").read())
         material = Material()
         material.name = config["name"]
         material.directory = config["directory"]
@@ -166,7 +166,7 @@ class Material(object):
         material.specular_texture_file = config["specular_texture_file"]
         material.metallic_texture_file = config["metallic_texture_file"]
         material.roughness_texture_file = config["roughness_texture_file"]
-        material.diffuse_tint = config["diffuse_tint"]
+        material.diffuse_tint = np.array(config["diffuse_tint"])
         material.metallic_tint = config["metallic_tint"]
         material.specular_tint = config["specular_tint"]
         material.roughness_tint = config["roughness_tint"]
@@ -176,9 +176,7 @@ class Material(object):
 
     def _dent_asset_save(self, datastore):
         """Saves this material to a dent asset datastore."""
-        config_buffer = StringIO.StringIO()
-        config_buffer.write(
-            yaml.dump(
+        config_buffer_info = yaml.safe_dump(
                 {
                     "name": self.name,
                     "directory": self.directory,
@@ -187,15 +185,12 @@ class Material(object):
                     "specular_texture_file": self.specular_texture_file,
                     "metallic_texture_file": self.metallic_texture_file,
                     "roughness_texture_file": self.metallic_texture_file,
-                    "diffuse_tint": self.diffuse_tint,
+                    "diffuse_tint": self.diffuse_tint.tolist(),
                     "metallic_tint": self.metallic_tint,
                     "specular_tint": self.metallic_tint,
                     "roughness_tint": self.metallic_tint,
                 }
             )
-        )
-        config_buffer.flush()
-        config_buffer.seek(0)
         config_header = tarfile.TarInfo("config")
-        config_header.size = config_buffer.len
-        datastore.addfile(config_header, config_buffer)
+        config_header.size = len(config_buffer_info)
+        datastore.addfile(config_header, io.BytesIO(config_buffer_info.encode('ascii')))

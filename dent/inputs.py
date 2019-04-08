@@ -24,7 +24,7 @@ def glut_mouse_motion_handler(x, y):
 
 def hold_mouse_motion_handler(x, y):
     if (x != windowWidth / 2 or y != windowHeight / 2) and hold_mouse:
-        glut.glutWarpPointer(windowWidth / 2, windowHeight / 2)
+        glut.glutWarpPointer(windowWidth // 2, windowHeight // 2)
 
 def reshape_handler(width, height):
     global windowHeight, windowWidth

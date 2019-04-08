@@ -1,4 +1,4 @@
-import StringIO
+import io
 import logging
 import sys
 import tarfile
@@ -274,28 +274,26 @@ class Texture(object):
 
         config = yaml.load(datastore.extractfile("config").read())
         texture = Texture(config["type"], internal_format=config["format"])
-        data = np.load(datastore.extractfile("data"))
+        data = np.safe_load(datastore.extractfile("data"))
         texture.loadData(data)
         return texture
 
     def _dent_asset_save(self, datastore):
         """Saves the image in this texture to a dent asset datastore."""
-        data_buffer = StringIO.StringIO()
+        data_buffer = io.BytesIO()
         np.save(data_buffer, self.getData())
-        data_buffer.flush()
-        data_buffer.seek(0)
         data_header = tarfile.TarInfo("data")
-        data_header.size = data_buffer.len
+        data_header.size = data_buffer.getbuffer().nbytes
+        data_buffer.seek(0)
         datastore.addfile(data_header, data_buffer)
 
-        config_buffer = StringIO.StringIO()
+        config_buffer = io.BytesIO()
         config_buffer.write(
-            yaml.dump({"type": self.textureType, "format": self.internal_format})
+            yaml.dump({"type": self.textureType, "format": self.internal_format}).encode('ascii')
         )
-        config_buffer.flush()
-        config_buffer.seek(0)
         config_header = tarfile.TarInfo("config")
-        config_header.size = config_buffer.len
+        config_header.size = config_buffer.getbuffer().nbytes
+        config_buffer.seek(0)
         datastore.addfile(config_header, config_buffer)
 
 

@@ -6,7 +6,7 @@ class Pager(dict):
 
 
   def _remove_oldest(self):
-    oldest = sorted(self.items(), key = lambda x: x[1][0])[0][0]
+    oldest = sorted(list(self.items()), key = lambda x: x[1][0])[0][0]
     self.remove(oldest)
 
 

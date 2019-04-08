@@ -1,4 +1,4 @@
-from RenderStage import RenderStage
+from .RenderStage import RenderStage
 
 class RenderPipeline(object):
   def __init__(self, stages=[]):

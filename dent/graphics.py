@@ -2,7 +2,7 @@ import OpenGL.GLUT as glut
 import OpenGL.GL as gl
 import sys
 import logging
-import messaging
+from . import messaging
 
 
 def glut_reshape_handler(width, height):
@@ -30,7 +30,7 @@ def initialise_graphics():
 
     glut.glutReshapeFunc(glut_reshape_handler)
 
-    logging.debug("Obtained OpenGL " + gl.glGetString(gl.GL_VERSION))
+    logging.debug("Obtained OpenGL %s", gl.glGetString(gl.GL_VERSION))
     logging.debug(
         "Uniform limit (vertex) {}".format(
             str(gl.glGetIntegerv(gl.GL_MAX_VERTEX_UNIFORM_COMPONENTS))

@@ -1,6 +1,6 @@
 import OpenGL.GL as gl
 import ctypes
-from Shader import Shader
+from .Shader import Shader
 import logging
 
 
@@ -68,7 +68,7 @@ class TransformFeedbackShader(Shader):
         We need a custom shader build function because the trasform feedback shaders
         require varyings to be set before the program is linked."""
         logging.debug("Building shader {}".format(self.name))
-        for source in self._sources.values():
+        for source in list(self._sources.values()):
             gl.glAttachShader(self.program, source.get_program())
 
         gl.glLinkProgram(self.program)

@@ -1,6 +1,6 @@
 import OpenGL.GL as gl
-import core
-from Shader import Shader
+from . import core
+from .Shader import Shader
 
 
 class GenericShader(Shader):

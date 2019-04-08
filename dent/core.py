@@ -8,14 +8,14 @@ import time
 import logging
 import numpy as np
 import numpy.linalg
-import taskQueue
+from . import taskQueue
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 from PIL import Image
 import random
 
-import args
+from . import args
 
 args.parse()
 
@@ -29,8 +29,8 @@ else:
 
 logging.getLogger("pyassimp").setLevel(logging.INFO)
 
-import messaging
-import configuration
+from . import messaging
+from . import configuration
 import dent.graphics
 import dent.inputs
 import dent.debug
@@ -40,7 +40,7 @@ windowWidth = 512
 frametime = 0.
 lastframe = time.time()
 trianglesQuery = None
-frametimes = [0 for _ in xrange(200)]
+frametimes = [0 for _ in range(200)]
 frametimecount = 0
 
 
@@ -97,7 +97,7 @@ def glut_timer_handler(fps):
 def timer_handler(fps):
     taskQueue.doNextTask()
 
-    glut.glutTimerFunc(1000 / fps, glut_timer_handler, fps)
+    glut.glutTimerFunc(1000 // fps, glut_timer_handler, fps)
 
 
 
@@ -143,7 +143,7 @@ def keyboard_handler(key):
             glut.glutSetCursor(glut.GLUT_CURSOR_NONE)
         dent.inputs.hold_mouse = not dent.inputs.hold_mouse
     if key == "?":
-        print(open("help").read())
+        print((open("help").read()))
 
 
 def mouse_handler(button, state, x, y):
@@ -153,17 +153,17 @@ def mouse_handler(button, state, x, y):
 
 def game_start_handler(time):
     logging.info("Game start!")
-    glut.glutTimerFunc(1000 / 60, glut_timer_handler, 60)
+    glut.glutTimerFunc(1000 // 60, glut_timer_handler, 60)
 
 
 def userCommand():
-    command = raw_input(">>> ")
+    command = input(">>> ")
     while (command not in ["continue", "exit"]):
         try:
             exec(command, globals())
         except Exception as e:
-            print("Exception:", e)
-        command = raw_input(">>> ")
+            print(("Exception:", e))
+        command = input(">>> ")
 
 
 dent.graphics.initialise_graphics()
@@ -171,7 +171,7 @@ dent.inputs.initialise_inputs()
 dent.debug.initialise_debug()
 glut.glutDisplayFunc(display)
 
-import Texture
+from . import Texture
 
 Texture.initialise()
 

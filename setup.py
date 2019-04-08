@@ -21,7 +21,7 @@ setup(
         "PyOpenGL>=3.1.1a1",
         "PyYAML>=3.12",
         "scipy>=1.0.0",
-        "pyassimp==4.1.0",
+        "pyassimp==4.0.1",
         "PyOpenAL>=0.7.0a1",
         "imageio>=2.3.0",
     ],
@@ -31,4 +31,5 @@ setup(
     zip_safe=False,
     test_suite="nose.collector",
     tests_require=["nose"],
+    python_requires='>=3',
 )

@@ -1,5 +1,5 @@
-import pycfg
-import args
+from . import pycfg
+from . import args
 import os
 import sys
 

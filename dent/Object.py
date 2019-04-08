@@ -3,18 +3,18 @@ import os
 import dent.assets
 import numpy as np
 import pyassimp
-import Texture
-import TextureManager
-import Shaders
-import transforms
+from . import Texture
+from . import TextureManager
+from . import Shaders
+from . import transforms
 import logging
-import taskQueue
+from . import taskQueue
 import threading
-import ActionController
+from . import ActionController
 from dent.Mesh import Mesh
 from dent.Material import Material
 from collections import namedtuple
-import Animation
+from . import Animation
 
 MeshOptions = namedtuple("MeshOptions", ("has_bumpmap", "has_bones"))
 MeshDatum = namedtuple("MeshDatum", ("name", "options", "mesh"))
@@ -56,7 +56,7 @@ class Object(object):
         self.renderIDs = {}
         self.scale = scale
         self.bones = {}
-        self.bone_transforms = [np.eye(4, dtype=float) for _ in xrange(60)]
+        self.bone_transforms = [np.eye(4, dtype=float) for _ in range(60)]
         self.action_controller = None
         self.will_animate = will_animate
         self.position = np.array(position, dtype=np.float32)
@@ -125,7 +125,7 @@ class Object(object):
                     self.name + "-material-" + material.properties[("name", 0)],
                     self.materials[material.properties[("name", 0)]],
                 )
-            material_names = self.materials.keys()
+            material_names = list(self.materials.keys())
             dent.assets.saveAsset(self.name + "-material-names", material_names)
 
             def addNode(node, trans, node_info):
@@ -173,7 +173,7 @@ class Object(object):
                 for name in material_names
             ]
         )
-        for material in self.materials.values():
+        for material in list(self.materials.values()):
             material.load_textures()
             self.meshes_per_material[material.name] = []
         for mesh in self.meshes:
@@ -205,8 +205,10 @@ class Object(object):
                 options = options._replace(has_bones=True)
 
         self.meshes.append(MeshDatum(name, options, mesh))
-
-        taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh,))
+        if self.daemon:
+          taskQueue.addToMainThreadQueue(self.uploadMesh, (mesh,))
+        else:
+          self.uploadMesh(mesh)
 
     def uploadMesh(self, mesh):
         self.renderIDs[mesh.name] = self.shader.setData(mesh.data, mesh.indices)
@@ -244,7 +246,7 @@ class Object(object):
             self.shader["hasSkinning"] = 1
         else:
             self.shader["hasSkinning"] = 0
-        for material in self.materials.values():
+        for material in list(self.materials.values()):
             material.set_uniforms(self.shader)
             for mesh in self.meshes_per_material[material.name]:
                 if mesh.name in self.renderIDs:

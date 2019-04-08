@@ -1,6 +1,6 @@
 import time
 import logging
-import cPickle as pickle
+import pickle as pickle
 from collections import deque
 import copy
 import gzip

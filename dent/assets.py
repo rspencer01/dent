@@ -2,7 +2,7 @@ import hashlib
 import logging
 import os
 import tarfile
-import cPickle as pickle
+import pickle as pickle
 import numpy as np
 
 if not os.path.exists("./_assets"):
@@ -10,7 +10,7 @@ if not os.path.exists("./_assets"):
 
 
 def getInternalAssetID(assetID):
-    return hashlib.sha256(str(assetID)).hexdigest()[:16]
+    return hashlib.sha256(str(assetID).encode('utf-8')).hexdigest()[:16]
 
 
 def getFilename(assetID):
@@ -22,7 +22,7 @@ def get_asset_metadata(assetID):
     if assetID + ".meta" not in os.listdir("_assets"):
         raise Exception("Asset not present")
 
-    lines = map(lambda x: x.strip(), open("_assets/" + assetID + ".meta").readlines())
+    lines = [x.strip() for x in open("_assets/" + assetID + ".meta").readlines()]
     return {"name": lines[0], "type": lines[1]}
 
 

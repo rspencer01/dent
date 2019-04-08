@@ -1,9 +1,9 @@
 import OpenGL.GL as gl
-import Texture
-from RenderStage import RenderStage
-import transforms
-import Shaders
-import Camera
+from . import Texture
+from .RenderStage import RenderStage
+from . import transforms
+from . import Shaders
+from . import Camera
 import numpy as np
 
 SHADOW_SIZE = 2048
@@ -18,7 +18,7 @@ class Shadows(object):
     self.shadowCamera.update()
 
     self.render_func = render_func
-    self.renderStages = [RenderStage(depth_only=True) for _ in xrange(3)]
+    self.renderStages = [RenderStage(depth_only=True) for _ in range(3)]
     for i in self.renderStages:
       i.reshape(SHADOW_SIZE, SHADOW_SIZE)
     self.renderStages[0].displayDepthTexture.loadAs(Texture.SHADOWS1)
@@ -54,7 +54,7 @@ class Shadows(object):
 
 
   def clear(self):
-    for i in xrange(3):
+    for i in range(3):
       self.renderStages[i].load(SHADOW_SIZE, SHADOW_SIZE)
 
 
@@ -63,7 +63,7 @@ class Shadows(object):
     self.shadowCamera.update()
     self.shadowCamera.render()
     self.count += 1
-    for i in xrange(3):
+    for i in range(3):
       if self.count % (self.exponent ** i) != 0:
         continue
       self.renderStages[i].load(SHADOW_SIZE, SHADOW_SIZE)

@@ -1,9 +1,9 @@
 import numpy as np
-import transforms
-import messaging
+from . import transforms
+from . import messaging
 import dent.keyboard
 import dent.inputs
-from Shaders import *
+from .Shaders import *
 
 class Camera(object):
   def __init__(

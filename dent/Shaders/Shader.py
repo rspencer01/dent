@@ -3,7 +3,7 @@ from collections import namedtuple
 import ctypes
 import numpy as np
 import logging
-import ShaderFile
+from . import ShaderFile
 
 currentShader = None
 
@@ -44,12 +44,12 @@ class Shader(object):
 
     def build(self):
         global currentShader
-        for i in self._sources.values():
+        for i in list(self._sources.values()):
           if i.is_stale():
             break
         else:
           return
-        for i in self._sources.values():
+        for i in list(self._sources.values()):
           i.timestamp = -1
 
         logging.debug("Building shader {}".format(self.name))
@@ -59,14 +59,14 @@ class Shader(object):
         try:
           self.program = gl.glCreateProgram()
 
-          for source in self._sources.values():
+          for source in list(self._sources.values()):
               gl.glAttachShader(self.program, source.get_program())
 
           gl.glLinkProgram(self.program)
           if gl.glGetProgramiv(self.program, gl.GL_LINK_STATUS) != gl.GL_TRUE:
               raise RuntimeError(gl.glGetProgramInfoLog(self.program))
         except ShaderFile.ShaderCompileException as e:
-          print e
+          print(e)
           if old_program is None:
             raise RuntimeError()
           else:
@@ -185,7 +185,7 @@ class Shader(object):
 
     def _setitems(self):
         """Blits all the lazyloaded uniforms to the GPU.    """
-        for i, v in self.unsetUniforms.items():
+        for i, v in list(self.unsetUniforms.items()):
             self._setitem(i, v)
         self.uniforms.update(self.unsetUniforms)
         self.unsetUniforms = {}

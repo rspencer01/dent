@@ -13,7 +13,7 @@ class Configuration(object):
     self._schema = schema
     self._data = {}
 
-    for key in self._schema.keys():
+    for key in list(self._schema.keys()):
       key_schema = self._schema[key]
       if 'type' not in key_schema:
         self._schema[key]['type'] = 'string'
@@ -36,7 +36,7 @@ class Configuration(object):
       return
     if ':' not in line:
       line = line+':'
-    key,value = map(lambda x:x.strip(), line.split(':', 1))
+    key,value = [x.strip() for x in line.split(':', 1)]
     key, value = self.parse_key_val(key, value)
     if value == '':
       self._data[key] = True

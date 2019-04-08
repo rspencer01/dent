@@ -1,5 +1,5 @@
 import OpenGL.GL as gl
-from GenericShader import GenericShader
+from .GenericShader import GenericShader
 import ctypes
 
 
@@ -34,7 +34,7 @@ class InstancedShader(GenericShader):
             offset = ctypes.c_void_p(offsetc)
             loc = gl.glGetAttribLocation(self.program, i)
             if loc == -1:
-                print("Error setting " + i + " in shader " + self.name)
+                print(("Error setting " + i + " in shader " + self.name))
                 continue
 
             gl.glBindBuffer(gl.GL_ARRAY_BUFFER, instbo)
@@ -72,7 +72,7 @@ class InstancedShader(GenericShader):
         gl.glBindVertexArray(self.objInfo[objectIndex].vertexArray)
         gl.glDrawElementsInstancedBaseInstance(
             type,
-            self.objInfo[objectIndex].renderVerts / 3,
+            self.objInfo[objectIndex].renderVerts // 3,
             gl.GL_UNSIGNED_INT,
             None,
             num,

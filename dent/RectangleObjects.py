@@ -1,7 +1,7 @@
-import Shaders
+from . import Shaders
 import numpy as np
 import OpenGL.GL as gl
-import Texture
+from . import Texture
 
 class RectangleObject(object):
   def __init__(self, shader_name):

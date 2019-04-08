@@ -20,6 +20,7 @@ class ShaderCompileException(Exception):
 
     def __init__(self, args):
         message, source = args
+        message = str(message)
         errp = re.compile(r"0:([0-9]+).*: (.*)")
         m = errp.match(message)
         if not m or not source:
@@ -29,7 +30,7 @@ class ShaderCompileException(Exception):
         line = int(m.groups()[0])
         ret = "\n\n" + message + "\n"
         sourceLines = source.split("\n")
-        for i in xrange(max(0, line - 4), min(len(sourceLines) - 1, line + 5)):
+        for i in range(max(0, line - 4), min(len(sourceLines) - 1, line + 5)):
             ret += (">>|" if i == line - 1 else "  |") + sourceLines[i] + "\n"
         Exception.__init__(self, ret)
 
@@ -90,7 +91,7 @@ class ShaderFile(object):
             ):
                 return pkg_resources.resource_string(
                     __name__, "default_shaders/includes/{}".format(self.name)
-                ), 0
+                ).decode(encoding='utf-8'), 0
 
             raise IOError("Shader '{}' not found".format(self.name))
 
@@ -105,7 +106,7 @@ class ShaderFile(object):
         ):
             return pkg_resources.resource_string(
                 __name__, "default_shaders/{}/{}".format(self.name, suffix)
-            ), 0
+            ).decode(encoding='utf-8'), 0
 
         raise IOError("Shader '{}' not found".format(self.name))
 

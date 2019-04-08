@@ -1,5 +1,5 @@
 import OpenGL.GL as gl
-from Shader import Shader
+from .Shader import Shader
 
 
 class TesselationShader(Shader):

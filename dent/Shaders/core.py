@@ -1,24 +1,24 @@
 import logging
 import OpenGL.GL as gl
-from ShaderFile import ShaderFile
+from .ShaderFile import ShaderFile
 
 universalUniforms = {}
 
-from GenericShader import GenericShader
-from InstancedShader import InstancedShader
-from TesselationShader import TesselationShader
-from TransformFeedbackShader import TransformFeedbackShader
+from .GenericShader import GenericShader
+from .InstancedShader import InstancedShader
+from .TesselationShader import TesselationShader
+from .TransformFeedbackShader import TransformFeedbackShader
 
 shaders = {}
 
 
 def setUniversalUniforms(shader):
-    for key, value in universalUniforms.items():
+    for key, value in list(universalUniforms.items()):
         shader[key] = value
 
 
 def updateUniversalUniform(key, value):
-    for name, shader in shaders.items():
+    for name, shader in list(shaders.items()):
         shader[key] = value
     universalUniforms[key] = value
 
@@ -61,5 +61,5 @@ def setUniform(name, value):
 
 
 def reload_all():
-    for shader in shaders.values():
+    for shader in list(shaders.values()):
         shader.build()

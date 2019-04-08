@@ -1,5 +1,5 @@
 import random
-from Animation import Animation
+from .Animation import Animation
 import numpy as np
 
 
@@ -34,7 +34,7 @@ class ActionController(object):
 
             weights = [
                 (-self.action_weight(self.actions[i]), i)
-                for i in xrange(len(self.actions))
+                for i in range(len(self.actions))
             ]
             random.shuffle(weights)
             weights.sort(key=lambda x: x[0])

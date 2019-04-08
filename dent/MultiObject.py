@@ -1,11 +1,11 @@
 import numpy as np
 import pyassimp
-import Camera
-import Texture
+from . import Camera
+from . import Texture
 from PIL import Image
 import os
-import Shaders
-import transforms
+from . import Shaders
+from . import transforms
 import OpenGL.GL as gl
 
 
@@ -69,7 +69,7 @@ class MultiObject(object):
     add = np.zeros((vertNorm.shape[0], 1), dtype=np.float32)
     vertNorm = np.append(vertNorm, add, axis=1)
     # Transform all the vertex positions.
-    for i in xrange(len(vertPos)):
+    for i in range(len(vertPos)):
       vertPos[i] = trans.dot(vertPos[i])
       vertNorm[i] = trans.dot(vertNorm[i])
     # Splice correctly
@@ -93,8 +93,8 @@ class MultiObject(object):
 
     # Load the texture
     texture = Texture.Texture(Texture.COLORMAP)
-    if 'file' in dict(mesh.material.properties.items()):
-      teximag = Image.open(self.directory+'/'+dict(mesh.material.properties.items())['file'])
+    if 'file' in dict(list(mesh.material.properties.items())):
+      teximag = Image.open(self.directory+'/'+dict(list(mesh.material.properties.items()))['file'])
       texdata = np.array(teximag.getdata()).astype(np.float32)
       # Make this a 4 color file
       if (texdata.shape[1]!=4):
@@ -148,7 +148,7 @@ class MultiObject(object):
                    (self.boundingBox[1][0]**2 + self.boundingBox[0][2]**2)**0.5,
                    (self.boundingBox[1][0]**2 + self.boundingBox[1][2]**2)**0.5,
                    (self.boundingBox[0][0]**2 + self.boundingBox[0][2]**2)**0.5])
-    for i in xrange(numberOfSwatches):
+    for i in range(numberOfSwatches):
       instance[i] = np.eye(4, dtype=np.float32)
       transforms.yrotate(instance['model'][i], i*360.0/numberOfSwatches)
       transforms.translate(instance['model'][i], i * width, 0, 0)

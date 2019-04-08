@@ -117,4 +117,4 @@ class RenderStage(object):
     """When the stage is deleted, we must get rid of any GPU resources we have
     requested."""
     logging.info("Deleting render stage %s", self)
-    gl.glDeleteFramebuffers([self.displayFBO])
+    gl.glDeleteFramebuffers(1, [self.displayFBO])

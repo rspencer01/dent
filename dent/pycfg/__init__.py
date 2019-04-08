@@ -1,6 +1,6 @@
 import yaml
 import os
-from Configuration import Configuration
+from .Configuration import Configuration
 
 def load(filename, schema_filename):
   try:
@@ -15,4 +15,4 @@ def load(filename, schema_filename):
 if __name__ == '__main__':
   c = load('main.cfg', 'example_schema.yaml')
   c.write_default_file('default.cfg')
-  print c
+  print(c)
