@@ -5,15 +5,20 @@ import tarfile
 import pickle as pickle
 import numpy as np
 
-if not os.path.exists("./_assets"):
-    os.mkdir("./_assets")
+
+def initialise():
+    """Constructs an asset store, if it does not exist."""
+    logging.info("Initialising asset store")
+    if not os.path.exists("./_assets"):
+        logging.info("Asset store not present: constructing asset store")
+        os.mkdir("./_assets")
 
 
 def getInternalAssetID(assetID):
-    return hashlib.sha256(str(assetID).encode('utf-8')).hexdigest()[:16]
+    return hashlib.sha256(str(assetID).encode("utf-8")).hexdigest()[:16]
 
 
-def getFilename(assetID):
+def get_filename(assetID):
     """Finds the path of an asset by its ID."""
     return os.path.join(".", "_assets", assetID)
 
@@ -26,20 +31,25 @@ def get_asset_metadata(assetID):
     return {"name": lines[0], "type": lines[1]}
 
 
-def loadFromFile(filename, type_hint=None):
+def loadFromFile(filename: str, type_hint=None):
+    """Attempts to load the asset from file.
+
+    This first tries the type spcified asset loader, then a numpy load and finally a
+    pickle load.
+    """
+    logging.debug("Loading asset from file %s (typehint %s)", filename, type_hint.__name__)
     if hasattr(type_hint, "_dent_asset_load"):
         if tarfile.is_tarfile(filename):
             datastore = tarfile.open(filename, "r")
             obj = type_hint._dent_asset_load(datastore)
             datastore.close()
+            logging.debug("Loaded object with custom loader")
             return obj
-
     try:
         obj = np.load(filename)
         logging.debug("Loaded object as numpy array")
         return obj
-
-    except IOError as e:
+    except (IOError, ValueError) as e:
         pass
     try:
         obj = pickle.load(open(filename, "rb"))
@@ -75,12 +85,12 @@ def getAsset(assetName, function=None, args=(), forceReload=False, type_hint=Non
     if forceReload and function is None:
         raise Exception("Must specify generation function if reloading asset.")
 
-    filename = getFilename(assetID)
+    filename = get_filename(assetID)
     if os.path.exists(filename) and not forceReload:
         return loadFromFile(filename, type_hint)
 
     if not function:
-        raise Exception("Asset not found")
+        raise Exception("Asset {} not found".format(assetName))
 
     obj = function(*args)
 
@@ -91,7 +101,7 @@ def getAsset(assetName, function=None, args=(), forceReload=False, type_hint=Non
 
 def saveAsset(assetName, value):
     assetID = getInternalAssetID(assetName)
-    filename = getFilename(assetID)
+    filename = get_filename(assetID)
     saveToFile(value, filename, assetName)
 
 

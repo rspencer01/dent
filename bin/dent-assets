@@ -4,7 +4,13 @@ import argparse
 import dent.assets
 import os
 import sys
+import humanize
 import shutil
+import logging
+import inspect
+import numpy as np
+
+logging.basicConfig(filename="/tmp/asset-explorer.log", level=logging.DEBUG)
 
 parser = argparse.ArgumentParser()
 
@@ -26,33 +32,55 @@ if args.action == "clean":
 import npyscreen, curses
 import dent.Material
 import dent.Texture
+import dent.Mesh
 
 
 class asset_grid(npyscreen.MultiLineAction):
-
     def display_value(self, vl):
-        if len(vl[0]) > 40:
-            vl[0] = vl[0][:37] + "..."
-        return "{:40} {:16} {:10} {:10}".format(*vl)
+        return "{:40} {:16} {:10} {:6}".format(
+            vl[0][:39] + (vl[0][39:] and "…"), *vl[1:]
+        )
 
     def actionHighlighted(self, act_on_this, key_press):
-        p = self.parentApp.switchForm("INSPECT")
 
         asset_type = None
         if act_on_this[2] == "Material":
             asset_type = dent.Material.Material
         if act_on_this[2] == "Texture":
             asset_type = dent.Texture.Texture
+        if act_on_this[2] == "Mesh":
+            asset_type = dent.Mesh.Mesh
 
-        self.parentApp.getForm("INSPECT").value = [
+        self.parentApp.to_inspect = [
             dent.assets.getAsset(act_on_this[0], type_hint=asset_type)
         ]
-        self.parentApp.getForm("INSPECT").toexit = False
+        self.parentApp.inspection_path = [act_on_this[0]]
+        if type(self.parentApp.to_inspect[-1]) in [tuple,list]:
+            self.parentApp.switchForm("LIST_INSPECT")
+        elif type(self.parentApp.to_inspect[-1]) == dict:
+            self.parentApp.switchForm("DICT_INSPECT")
+        else:
+            self.parentApp.switchForm("INSPECT")
 
 
-class asset_list_form(npyscreen.FormBaseNew):
-
+class asset_list_form(npyscreen.Form):
     def create(self):
+        asset_ids = dent.assets.getAllAssetIds()
+        self.add(
+            npyscreen.TitleFixedText, name="Asset count", value=str(len(asset_ids))
+        )
+        self.add(
+            npyscreen.TitleFixedText,
+            name="Assets size",
+            value=humanize.naturalsize(
+                sum(
+                    [
+                        os.path.getsize(dent.assets.get_filename(asset))
+                        for asset in asset_ids
+                    ]
+                )
+            ),
+        )
         self.assetlist = self.add(
             asset_grid,
             name="Assets",
@@ -64,21 +92,29 @@ class asset_list_form(npyscreen.FormBaseNew):
                     dent.assets.getAssetName(asset),
                     asset,
                     dent.assets.get_asset_type(asset),
-                    os.path.getsize(dent.assets.getFilename(asset)) / 1024,
+                    humanize.naturalsize(
+                        os.path.getsize(dent.assets.get_filename(asset))
+                    ),
                 ]
-                for asset in dent.assets.getAllAssetIds()
+                for asset in asset_ids
             ],
             col_titles=["Name", "Asset ID", "Type", "Size (kb)"],
         )
         self.assetlist.parentForm = self
         self.assetlist.parentApp = self.parentApp
 
+    def afterEditing(self):
+        if len(self.parentApp.to_inspect) == 0:
+            self.parentApp.switchForm(None)
+
 
 class inspection_row(npyscreen.AnnotateTextboxBase):
     ANNOTATE_WIDTH = 30
 
     def display_value(self, v):
-        return str(v[1])
+        if inspect.isfunction(v[1]) or inspect.ismethod(v[1]):
+            return str(inspect.signature(v[1]))
+        return "{:15} {}".format(type(v[1]).__name__, v[1])
 
     def getAnnotationAndColor(self):
         if self.value[0][0] == "_":
@@ -97,65 +133,131 @@ class inspection_table(npyscreen.MultiLineAction):
         return vl
 
     def actionHighlighted(self, act_on_this, key_press):
+        self.parent.parentApp.inspection_path.append(act_on_this[0])
+        self.parent.parentApp.inspection_path.append(act_on_this[0])
+        self.parent.parentApp.to_inspect.append(act_on_this[1])
+        self.parent.parentApp.to_inspect.append(act_on_this[1])
         self.parent.parentApp.switchForm("INSPECT")
 
-        self.parent.parentApp.getForm("INSPECT").value.append(act_on_this[1])
-        self.parent.parentApp.getForm("INSPECT").toexit = False
+
+class list_inspector(npyscreen.Form):
+    def create(self):
+        self.type = self.add(
+            npyscreen.FixedText, name=None, color="STANDOUT"
+        )
+        self.values = self.add(
+            inspection_table, scroll_exit=True, select_whole_line=True, max_height=20
+        )
+
+    def beforeEditing(self):
+        val = self.parentApp.to_inspect[-1]
+        self.type.value = type(val).__name__
+        self.name = " . ".join(self.parentApp.inspection_path)
+        self.values.values = []
+        builtins = []
+        for i in range(len(val)):
+            self.values.values.append((str(i), val[i]))
+
+    def afterEditing(self):
+        self.parentApp.to_inspect.pop()
+        self.parentApp.inspection_path.pop()
+        if self.parentApp.to_inspect:
+            if type(self.parentApp.to_inspect[-1]) in [tuple,list]:
+                self.parentApp.setNextForm("LIST_INSPECT")
+            elif type(self.parentApp.to_inspect[-1]) == dict:
+                self.parentApp.setNextForm("DICT_INSPECT")
+            else:
+                self.parentApp.setNextForm("INSPECT")
+        else:
+            self.parentApp.setNextForm("MAIN")
+
+class dict_inspector(npyscreen.Form):
+    def create(self):
+        self.type = self.add(
+            npyscreen.FixedText, name=None, color="STANDOUT", value="dict"
+        )
+        self.values = self.add(
+            inspection_table, scroll_exit=True, select_whole_line=True, max_height=20
+        )
+
+    def beforeEditing(self):
+        val = self.parentApp.to_inspect[-1]
+        self.name = " . ".join(self.parentApp.inspection_path)
+        self.values.values = []
+        builtins = []
+        for i in val:
+            self.values.values.append((i, val[i]))
+
+    def afterEditing(self):
+        self.parentApp.to_inspect.pop()
+        self.parentApp.inspection_path.pop()
+        if self.parentApp.to_inspect:
+            if type(self.parentApp.to_inspect[-1]) in [tuple,list]:
+                self.parentApp.setNextForm("LIST_INSPECT")
+            elif type(self.parentApp.to_inspect[-1]) == dict:
+                self.parentApp.setNextForm("DICT_INSPECT")
+            else:
+                self.parentApp.setNextForm("INSPECT")
+        else:
+            self.parentApp.setNextForm("MAIN")
 
 
 class object_inspector(npyscreen.Form):
-
     def create(self):
         self.type = self.add(npyscreen.FixedText, name=None, color="STANDOUT")
         self.doc = self.add(npyscreen.FixedText, name=None)
+        self.value = self.add(npyscreen.FixedText, name=None)
         self.add(npyscreen.FixedText)
         self.values = self.add(
             inspection_table, scroll_exit=True, select_whole_line=True, max_height=20
         )
-        self.add_handlers({curses.ascii.ESC: self.prev})
-
-    def prev(self):
-        if self.value == []:
-            self.parentApp.switchFormPrevious()
-        else:
-            self.value.pop()
-            self.beforeEditing()
 
     def beforeEditing(self):
-        if self.value == []:
-            self.parentApp.switchFormPrevious()
-            return
-        val = self.value[-1]
-        self.name = str(val)
+        val = self.parentApp.to_inspect[-1]
+        self.name = " . ".join(self.parentApp.inspection_path)
         self.doc.value = val.__doc__.split("\n")[0] if val.__doc__ else ""
         self.type.value = str(type(val).__name__)
         self.values.values = []
         builtins = []
         for i in dir(val):
-            if i[:2] != "__" or i[-2:] != "__":
+            if (i[:2] != "__" or i[-2:] != "__") and not inspect.isbuiltin(
+                getattr(val, i)
+            ):
                 self.values.values.append((i, getattr(val, i)))
             else:
                 builtins.append(i)
+        self.values.values.sort(
+            key=lambda x: (
+                1 if inspect.isfunction(x[1]) or inspect.ismethod(x[1]) else 0,
+                str(x[0]),
+            )
+        )
 
     def afterEditing(self):
-        if self.toexit:
-            self.prev()
+        self.parentApp.to_inspect.pop()
+        self.parentApp.inspection_path.pop()
+        if self.parentApp.to_inspect:
+            if type(self.parentApp.to_inspect[-1]) in [tuple,list]:
+                self.parentApp.setNextForm("LIST_INSPECT")
+            elif type(self.parentApp.to_inspect[-1]) == dict:
+                self.parentApp.setNextForm("DICT_INSPECT")
+            else:
+                self.parentApp.setNextForm("INSPECT")
         else:
-            self.toexit = True
-
-
-#        self.parentApp.switchFormPrevious()
+            self.parentApp.setNextForm("MAIN")
 
 
 class application(npyscreen.NPSAppManaged):
-
     def __init__(self):
         super(application, self).__init__()
-        self.to_inspect = None
+        self.inspection_path = []
+        self.to_inspect = []
 
     def onStart(self):
         self.addForm("MAIN", asset_list_form, name="Asset List")
         self.addForm("INSPECT", object_inspector, name="Object Inspector")
+        self.addForm("LIST_INSPECT", list_inspector, name="List Inspector")
+        self.addForm("DICT_INSPECT", dict_inspector, name="Dict Inspector")
 
 
 application().run()

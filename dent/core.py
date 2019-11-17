@@ -35,6 +35,9 @@ import dent.graphics
 import dent.inputs
 import dent.debug
 
+from . import assets
+assets.initialise()
+
 windowHeight = 512
 windowWidth = 512
 frametime = 0.
