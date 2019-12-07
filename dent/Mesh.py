@@ -1,15 +1,10 @@
-import logging
-import os
 import numpy as np
-import dent.TextureManager
-import dent.Texture
 import yaml
 import io
 import tarfile
 
 
 def get_node_parent(scene, name):
-
     def dfs(node, parent):
         if node.name == name:
             return parent
@@ -25,25 +20,27 @@ def get_node_parent(scene, name):
 
 
 class Mesh(object):
-    """ Holds the data for a single mesh.
+    """Holds the data for a single mesh.
 
     This object describes, in memory, the vertex data for a particular mesh of a
     model.  Mesh loading from pyassimp meshes is also implemented.
 
     In general, this object should always belong to an Object, be loaded from a
     file and not be created by the game.  It is suitable to be saved to disk
-    using the dent asset manager."""
+    using the dent asset manager.
+    """
 
-    def __init__(self, name, transform, offset, directory):
+    def __init__(self, name, transform=np.eye(4), offset=np.zeros(3), directory=""):
         self.name = name
         self.directory = directory
         self.data = None
         self.indices = None
-        self.transform = transform
+        self._transform = transform
         self.offset = offset
         self.material_name = None
 
     def load_from_assimp(self, assimp_mesh, directory, scene, parent):
+        """Load this mesh from an assimp mesh."""
         self.data = np.zeros(
             len(assimp_mesh.vertices),
             dtype=[
@@ -58,30 +55,30 @@ class Mesh(object):
         )
 
         # Get the vertex positions and add a w=1 component
-        vertPos = assimp_mesh.vertices
-        add = np.ones((vertPos.shape[0], 1), dtype=np.float32)
-        vertPos = np.append(vertPos, add, axis=1)
+        vertex_positions = assimp_mesh.vertices
+        add = np.ones((vertex_positions.shape[0], 1), dtype=np.float32)
+        vertex_positions = np.append(vertex_positions, add, axis=1)
         # Get the vertex normals and add a w=1 component
-        vertNorm = assimp_mesh.normals
-        add = np.zeros((vertNorm.shape[0], 1), dtype=np.float32)
-        vertNorm = np.append(vertNorm, add, axis=1)
+        vertex_normals = assimp_mesh.normals
+        add = np.zeros((vertex_normals.shape[0], 1), dtype=np.float32)
+        vertex_normals = np.append(vertex_normals, add, axis=1)
 
-        tinvtrans = np.linalg.inv(self.transform).transpose()
+        tinvtrans = np.linalg.inv(self._transform).transpose()
         # Transform all the vertex positions.
-        for i in range(len(vertPos)):
-            vertPos[i] = self.transform.dot(vertPos[i])
-            vertNorm[i] = tinvtrans.dot(vertNorm[i])
+        for i in range(len(vertex_positions)):
+            vertex_positions[i] = self._transform.dot(vertex_positions[i])
+            vertex_normals[i] = tinvtrans.dot(vertex_normals[i])
         # Splice correctly, killing last components
-        vertPos = vertPos[:, 0:3] - self.offset
-        vertNorm = vertNorm[:, 0:3]
+        vertex_positions = vertex_positions[:, 0:3] - self.offset
+        vertex_normals = vertex_normals[:, 0:3]
 
-        vertUV = assimp_mesh.texturecoords[0][:, [0, 1]]
-        vertUV[:, 1] = 1 - vertUV[:, 1]
+        vertex_uvs = assimp_mesh.texturecoords[0][:, [0, 1]]
+        vertex_uvs[:, 1] = 1 - vertex_uvs[:, 1]
 
         # Set the data
-        self.data["position"] = vertPos
-        self.data["normal"] = vertNorm
-        self.data["textcoord"] = vertUV
+        self.data["position"] = vertex_positions
+        self.data["normal"] = vertex_normals
+        self.data["textcoord"] = vertex_uvs
         self.data["tangent"] = assimp_mesh.tangents
         self.data["bone_ids"] = 59
         self.data["bitangent"] = assimp_mesh.bitangents
@@ -95,7 +92,9 @@ class Mesh(object):
                 n = len(parent.bones)
                 if bone.name not in parent.bones:
                     parent.bones[bone.name] = (
-                        n, get_node_parent(scene, bone.name).name, bone.offsetmatrix
+                        n,
+                        get_node_parent(scene, bone.name).name,
+                        bone.offsetmatrix,
                     )
                     nn = n
                 else:
@@ -103,9 +102,10 @@ class Mesh(object):
                 for relationship in bone.weights:
                     bone_vec_number = 0
                     for i in range(3):
-                        if self.data["weights"][relationship.vertexid][
-                            bone_vec_number
-                        ] > 0:
+                        if (
+                            self.data["weights"][relationship.vertexid][bone_vec_number]
+                            > 0
+                        ):
                             bone_vec_number += 1
                         else:
                             break
@@ -117,22 +117,39 @@ class Mesh(object):
 
         self.material_name = assimp_mesh.material.properties[("name", 0)]
 
+    def union(self, other) -> "Mesh":
+        """Construct the union of this mesh with another.
+
+        Currently this forgets all materials etc. and is simply an action on sets of
+        triangles.
+        """
+        mesh = Mesh("{}|{}".format(self.name, other.name))
+        mesh.data = np.concatenate((self.data, other.data))
+        mesh.indices = np.concatenate((self.indices, other.indices + len(self.data)))
+        return mesh
+
     @staticmethod
-    def _dent_asset_load(datastore):
+    def _dent_asset_load(datastore) -> "Mesh":
         if "config" not in datastore.getnames() or "data" not in datastore.getnames():
             raise IOError()
 
-        config = yaml.load(datastore.extractfile("config").read())
+        config = yaml.safe_load(datastore.extractfile("config").read())
         mesh = Mesh(
-            config["name"], config["transform"], config["offset"], config["directory"]
+            config["name"],
+            np.array(config["transform"]).reshape((4, 4)),
+            np.array(config["offset"]),
+            config["directory"],
         )
-        mesh.indices = config["indices"]
+        mesh.indices = np.array(config["indices"])
         mesh.material_name = config["material_name"]
-        mesh.data = np.load(datastore.extractfile("data"))
+        array_file = io.BytesIO()
+        array_file.write(datastore.extractfile("data").read())
+        array_file.seek(0)
+        mesh.data = np.load(array_file)
         return mesh
 
     def _dent_asset_save(self, datastore):
-        """Saves the image in this texture to a dent asset datastore."""
+        """Save the image in this texture to a dent asset datastore."""
         data_buffer = io.BytesIO()
         np.save(data_buffer, self.data)
         data_header = tarfile.TarInfo("data")
@@ -146,12 +163,12 @@ class Mesh(object):
                 {
                     "name": self.name,
                     "directory": self.directory,
-                    "transform": self.transform,
-                    "offset": self.offset,
-                    "indices": self.indices,
+                    "transform": self._transform.tolist(),
+                    "offset": self.offset.tolist(),
+                    "indices": self.indices.tolist(),
                     "material_name": self.material_name,
                 }
-            ).encode('ascii')
+            ).encode("ascii")
         )
         config_buffer.flush()
         config_header = tarfile.TarInfo("config")
